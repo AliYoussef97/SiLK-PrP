@@ -8,7 +8,7 @@ def normalize_keypoints(kpts: torch.Tensor,
     Inputs:
         kpts: (B, N, 2) torch.Tensor
         K: (B, 3, 3) torch.Tensor
-    Returns:
+    Outputs:
         mkpts: (B, N, 2) torch.Tensor
     """
     assert len(kpts.shape) == 3 and len(K.shape) == 3, "keypoints and Intrinsics must have shape (B, N, 2) and (B, 3, 3)"
@@ -35,7 +35,7 @@ def pose_estimation(mkpts_0: torch.Tensor,
         K_0: (B, 3, 3) torch.Tensor
         K_1: (B, 3, 3) torch.Tensor
         confidence: (B, N) torch.Tensor
-    Returns:
+    Outputs:
         P_est: (B, 3, 4) torch.Tensor
     """
     # Normalize the keypoints
@@ -63,7 +63,7 @@ def relative_pose_error(P_est: torch.Tensor,
         P_est: (B, 3, 4) torch.Tensor
         P_GT: (B, 3, 4) torch.Tensor
         train: Boolean
-    Returns:
+    Outputs:
         err: (N) torch.Tensor
     """
     assert len(P_est.shape) == 3 and len(P_GT.shape) == 3, "Estimated and GT poses must have shape (B, 3, 4)"
@@ -91,7 +91,7 @@ def relative_rotation_error(R_est: torch.Tensor,
         P_est: (B, 3, 3) torch.Tensor
         P_GT: (B, 3, 3) torch.Tensor
         train: Boolean
-    Returns:
+    Outputs:
         err_R: (B, N) torch.Tensor
     """
     assert len(R_est.shape) == 3 and len(R_GT.shape) == 3, "R_est and R_GT must have shape (B, 3, 3)"
@@ -110,11 +110,11 @@ def relative_translation_error(T_est: torch.Tensor,
     """
     Computes the relative translation error between the estimated and ground truth poses.
     Inputs:
-    T_est: (B, 3, 1) torch.Tensor
-    T_GT: (B, 3, 1) torch.Tensor
-    train: Boolean
-    Returns:
-    err_t: (B, N) torch.Tensor
+    	T_est: (B, 3, 1) torch.Tensor
+    	T_GT: (B, 3, 1) torch.Tensor
+    	train: Boolean
+    Outputs:
+    	err_t: (B, N) torch.Tensor
     """
     assert len(T_est.shape) == 3 and len(T_GT.shape) == 3, "T_est and T_GT must have shape (B, 3, 1)"
 
