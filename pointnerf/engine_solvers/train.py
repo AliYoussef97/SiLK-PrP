@@ -29,7 +29,7 @@ def train_val(config: dict,
         None
     """
 
-    print(f'\033[92m🚀 Training started for {config["model"]["model_name"].upper()} model on {config["data"]["class_name"]}\033[0m')
+    print(f'\033[92m🚀 Training started for {config["model"]["class_name"].upper()} model on {config["data"]["class_name"]}\033[0m')
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["learning_rate"])
 
@@ -44,7 +44,7 @@ def train_val(config: dict,
 
     writer = SummaryWriter(log_dir = Path(checkpoint_path,"logs"))
  
-    max_iterations = config["train"]["num_iters"]    
+    max_iterations = config["training"]["num_iters"]    
     iter = iteration
 
     pbar = tqdm(desc="Training", total=max_iterations, colour="green")
@@ -75,7 +75,8 @@ def train_val(config: dict,
             
             corr_0, corr_1 = get_correspondences(batch,
                                                  config["training"]["feature_size"],
-                                                 bias=config["training"]["bias"])
+                                                 bias=config["training"]["bias"],
+                                                 device=device)
 
             desc_loss, kpts_loss, precision, recall, mkpts_0, mkpts_1 = loss_fn(desc_norm_0,
                                                                                 desc_norm_1,

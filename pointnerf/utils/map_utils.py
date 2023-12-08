@@ -174,7 +174,7 @@ def get_correspondences(data: dict,
     warped_translation = data["warp"]["warped_translation"]
     warped_depth = data["warp"]["warped_depth"]
 
-    K0, K1 = data["camera_intrinsic_matrix"]
+    K0 = K1 = data["camera_intrinsic_matrix"]
 
     H_d, W_d = shape
 

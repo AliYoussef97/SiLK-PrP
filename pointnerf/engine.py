@@ -32,9 +32,8 @@ class main():
                  task: Literal["train"],
                  training:options) -> None:
 
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f) 
-        
+        self.config = yaml.load(stream=open(config_path, 'r'), Loader=yaml.FullLoader)
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if task == "train":

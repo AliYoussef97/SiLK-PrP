@@ -5,7 +5,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 import torchvision
 from pointnerf.data.data_utils.photometric_augmentation import Photometric_aug
-from superpoint.settings import DATA_PATH
+from pointnerf.settings import DATA_PATH
 
 class NeRF(Dataset):
     def __init__(self, data_config, task = "training" ,device="cpu") -> None:
@@ -25,7 +25,7 @@ class NeRF(Dataset):
         Output:
             files: dict containing the paths to the images, camera transforms and depth maps.
         """
-        data_dir = Path(DATA_PATH, "NeRF", self.config["data_dir"], "images", self.action)
+        data_dir = Path(DATA_PATH, "NeRF", "images", self.action)
         image_paths = sorted(list(data_dir.iterdir()))
         if self.config["truncate"]:
             image_paths = image_paths[:int(self.config["truncate"]*len(image_paths))]
@@ -33,8 +33,8 @@ class NeRF(Dataset):
         image_paths = [str(p) for p in image_paths]
         files = {"image_paths":image_paths, "names":names}
 
-        camera_transform_dir = Path(DATA_PATH, "NeRF", self.config["data_dir"], "camera_transforms", self.action)
-        depth_dir = Path(DATA_PATH, "NeRF", self.config["data_dir"], "depth", self.action)
+        camera_transform_dir = Path(DATA_PATH, "NeRF", "camera_transforms", self.action)
+        depth_dir = Path(DATA_PATH, "NeRF", "depth", self.action)
         camera_transform_paths = []
         depth_paths = []
         for n in files["names"]:
