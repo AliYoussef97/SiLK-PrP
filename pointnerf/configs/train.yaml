@@ -1,0 +1,65 @@
+data:
+    name: 'NeRF_dataset'
+    class_name: 'NeRF'
+    image_size: [480, 640]
+    fov: 44
+    data_dir: ''
+    truncate: False
+    downsample: False
+    downsample_size: [240,320]
+    batch_size: 1
+    augmentation:
+      photometric:
+        Parameters:
+          RandomGamma: 
+            p: .2
+            gamma: [1.05, 1.25]
+          RandomBrightness:
+            p: .5
+            brightness: [0.8, 1.2]
+          RandomContrast:
+            p: .2
+            contrast: [0.5, 1.5]
+          RandomGaussianBlur:
+            p: .2
+            kernel_size: [3, 7]
+            sigma: [0.8, 2.5]
+          RandomMotionBlur:
+            p: .2
+            kernel_size: !!python/tuple [5, 9]
+            angle: [-120, 120]
+            direction: [-1, 1]
+            border_type: 1
+            resample: bilinear
+          RandomGaussianNoise:
+            p: .5
+            mean: 0.
+            std: 0.04
+model:
+    script: 'PointNeRF'
+    class_name: 'Pointnerf'
+    backbone:
+      channels: [1, 64, 64, 128, 128]
+      normalization: 'BatchNorm2d'
+      activation: 'ReLU'
+    detector_head:
+      channels: [128, 1]
+      normalization: 'BatchNorm2d'
+      activation: 'ReLU'
+    descriptor_head:
+      channels: [128, 128]
+      normalization: 'BatchNorm2d'
+      activation: 'ReLU'
+    scale_factor: 1.41
+training:
+  learning_rate: 0.0001
+  block_size: 3732
+  jax_device: 'cuda:1'
+  tempeature: 0.1
+  bias: 9.
+  feature_size: [462, 622]
+  num_iters: 100000
+pretrained: ''
+ckpt_name: 'pointnerf_v1'
+save_or_validation_interval: 2500
+continue_training: False
