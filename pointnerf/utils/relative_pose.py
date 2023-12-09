@@ -8,7 +8,7 @@ def normalize_keypoints(kpts: torch.Tensor,
     Inputs:
         kpts: (B, N, 2) torch.Tensor
         K: (B, 3, 3) torch.Tensor
-    Outputs:
+    Returns:
         mkpts: (B, N, 2) torch.Tensor
     """
     assert len(kpts.shape) == 3 and len(K.shape) == 3, "keypoints and Intrinsics must have shape (B, N, 2) and (B, 3, 3)"
@@ -46,7 +46,7 @@ def pose_estimation(mkpts_0: torch.Tensor,
     mkpts_1 = normalize_keypoints(mkpts_1, K_1)
 
     intr = torch.eye(3, device=K_0.device)
-    F = kornia.geometry.epipolar.find_fundamental(mkpts_0, mkpts_1, confidence,method='8POINT')
+    F = kornia.geometry.epipolar.find_fundamental(mkpts_0, mkpts_1, confidence, method='8POINT')
     R, t, _ = kornia.geometry.epipolar.motion_from_essential_choose_solution(F, intr, intr, mkpts_0, mkpts_1, None)
     P_est = torch.cat([R, t], dim=-1)
 
@@ -110,11 +110,11 @@ def relative_translation_error(T_est: torch.Tensor,
     """
     Computes the relative translation error between the estimated and ground truth poses.
     Inputs:
-    	T_est: (B, 3, 1) torch.Tensor
-    	T_GT: (B, 3, 1) torch.Tensor
-    	train: Boolean
+    T_est: (B, 3, 1) torch.Tensor
+    T_GT: (B, 3, 1) torch.Tensor
+    train: Boolean
     Outputs:
-    	err_t: (B, N) torch.Tensor
+        err_t: (B, N) torch.Tensor
     """
     assert len(T_est.shape) == 3 and len(T_GT.shape) == 3, "T_est and T_GT must have shape (B, 3, 1)"
 

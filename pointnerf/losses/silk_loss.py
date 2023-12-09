@@ -51,10 +51,10 @@ def total_loss_reduction(
     batched_total_loss = jax.vmap(
         jax_loss.total_loss,
         in_axes=(0, 0, 0, 0, 0, 0, None),
-        out_axes=(0, 0, 0, 0, 0, 0),
+        out_axes=(0, 0, 0, 0, 0, 0, 0),
     )
 
-    loss_0, loss_1, precision, recall, correct_mask_0, correct_mask_1 = batched_total_loss(
+    loss_0, loss_1, precision, recall, correct_mask_0, correct_mask_1, similarity = batched_total_loss(
         desc_0,
         desc_1,
         corr_0,
@@ -64,7 +64,7 @@ def total_loss_reduction(
         block_size,
     )
 
-    return loss_0.mean(), loss_1.mean(), precision.mean(), recall.mean(), correct_mask_0, correct_mask_1
+    return loss_0.mean(), loss_1.mean(), precision.mean(), recall.mean(), correct_mask_0, correct_mask_1, similarity
 
 
 total_loss = jax2torch(
@@ -125,15 +125,17 @@ class Loss(torch.nn.Module):
 
         logits_0, logits_1 = self.flatten(logits_0), self.flatten(logits_1)
 
-        desc_loss, keypoint_loss, precision, recall, correct_mask_0, correct_mask_1 = total_loss(desc_0,
-                                                                                                 desc_1,
-                                                                                                 corr_0,
-                                                                                                 corr_1,
-                                                                                                 logits_0,
-                                                                                                 logits_1,
-                                                                                                 block_size=self._block_size,
-                                                                                                 jax_device=self._jax_device)
+        desc_loss, keypoint_loss, precision, recall, correct_mask_0, correct_mask_1, similarity = total_loss(desc_0,
+                                                                                                             desc_1,
+                                                                                                             corr_0,
+                                                                                                             corr_1,
+                                                                                                             logits_0,
+                                                                                                             logits_1,
+                                                                                                             block_size=self._block_size,
+                                                                                                             jax_device=self._jax_device)
         
+        correct_mask_0, correct_mask_1 = keep_mutual_correspondences_only(correct_mask_0, correct_mask_1)
+
         m_points_0, m_points_1 = torch.where(correct_mask_0.bool(), prob_map_0, torch.tensor(0., device=prob_map_0.device)),\
                                  torch.where(correct_mask_1.bool(), prob_map_1, torch.tensor(0., device=prob_map_1.device))
         
@@ -143,4 +145,6 @@ class Loss(torch.nn.Module):
         
         m_points_0, m_points_1 = m_points_0[:,:,:2].floor().long(), m_points_1[:,:,:2].floor().long()
 
-        return desc_loss, keypoint_loss, precision, recall, m_points_0, m_points_1
+        confidence = similarity[:, m_points_0[:, :, 0], m_points_0[:, :, 1]]
+
+        return desc_loss, keypoint_loss, precision, recall, m_points_0, m_points_1, confidence
