@@ -90,17 +90,18 @@ def train_val(config: dict,
                                     batch["camera_intrinsic_matrix"],
                                     confidence)
 
-            p_loss = relative_pose_error(P_est,
-                                         batch["GT_relative_pose"],
-                                         train=True)
+            rot_loss, transl_loss = relative_pose_error(P_est,
+                                                        batch["GT_relative_pose"],
+                                                        train=True)
 
-            loss = desc_loss + kpts_loss + p_loss
+            loss = desc_loss + kpts_loss + (rot_loss + transl_loss)
 
             writer.add_scalar("Descriptor loss", desc_loss, iter)
             writer.add_scalar("Keypoints loss", kpts_loss, iter)
             writer.add_scalar("Precision", precision, iter)
             writer.add_scalar("Recall", recall, iter)
-            writer.add_scalar("Pose loss", p_loss, iter)
+            writer.add_scalar("Rotation loss", torch.rad2deg(rot_loss), iter)
+            writer.add_scalar("Translation loss", torch.rad2deg(transl_loss), iter)
             writer.add_scalar("Total loss", loss, iter)
 
             running_loss.append(loss.item())
@@ -194,11 +195,11 @@ def validate(config, model, validation_loader, loss_fn, device= "cpu"):
                                     val_batch["camera_intrinsic_matrix"],
                                     val_confidence)
         
-        val_p_loss = relative_pose_error(val_P_est,
-                                         val_batch["GT_relative_pose"],
-                                         train=False)
+        val_rot_loss, val_transl_loss = relative_pose_error(val_P_est,
+                                                            val_batch["GT_relative_pose"],
+                                                            train=False)
         
-        val_loss = val_desc_loss + val_kpts_loss + val_p_loss
+        val_loss = val_desc_loss + val_kpts_loss + (val_rot_loss + val_transl_loss)
 
         running_val_loss.append(val_loss.item())
 

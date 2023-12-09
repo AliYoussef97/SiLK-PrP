@@ -136,16 +136,8 @@ class NeRF(Dataset):
         data["raw"]["image"] = data["raw"]["image"][i:i+h, j:j+w]
         data["warp"]["image"] = data["warp"]["image"][i:i+h, j:j+w]
 
-        data["raw"]["valid_mask"] = data["raw"]["valid_mask"][i:i+h, j:j+w]
-        data["warp"]["valid_mask"] = data["warp"]["valid_mask"][i:i+h, j:j+w]
-
-        data["raw"]["kpts_heatmap"] = data["raw"]["kpts_heatmap"][i:i+h, j:j+w]
-        data["warp"]["kpts_heatmap"] = data["warp"]["kpts_heatmap"][i:i+h, j:j+w]
-
-        data["raw"]["kpts"] = torch.nonzero(data["raw"]["kpts_heatmap"], as_tuple=False)
-        data["warp"]["kpts"] = torch.nonzero(data["warp"]["kpts_heatmap"], as_tuple=False)
-
         data["raw"]["input_depth"] = data["raw"]["input_depth"][i:i+h, j:j+w]
+        data["warp"]["warped_depth"] = data["warp"]["warped_depth"][i:i+h, j:j+w]
 
         data["camera_intrinsic_matrix"] = self.get_camera_intrinsic(self.config["downsample_size"],self.config["fov"])
 
@@ -170,7 +162,7 @@ class NeRF(Dataset):
         R_1_2 = R2_W_C @ R1_W_C.T
         T_1_2 = T2_W_C - (R2_W_C @ R1_W_C.T @ T1_W_C)
 
-        P_1_2 = np.hstack((R_1_2, T_1_2))
+        P_1_2 = torch.cat([R_1_2, T_1_2], dim=-1)
 
         return P_1_2
 
@@ -215,6 +207,9 @@ class NeRF(Dataset):
                 "GT_relative_pose":GT_relative_pose,
                 "camera_intrinsic_matrix":self.camera_intrinsic_matrix}
         
+        if self.config["downsample"]:
+            data = self.downsample_data(data)
+        
         return data
     
     def batch_collator(self, batch: list) -> dict:
@@ -250,7 +245,7 @@ class NeRF(Dataset):
             
         intrinsic_matrix = torch.stack([item['camera_intrinsic_matrix'] for item in batch]) # size=(batch_size,3,3)
 
-        GT_relative_pose = [item["GT_relative_pose"] for item in batch]
+        GT_relative_pose = torch.stack([item['GT_relative_pose'] for item in batch]) # size=(batch_size,3,4)
             
         return {"raw":{'image':images,
                        'input_depth':input_depths,

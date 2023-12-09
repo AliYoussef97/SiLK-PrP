@@ -39,13 +39,13 @@ def pose_estimation(mkpts_0: torch.Tensor,
         P_est: (B, 3, 4) torch.Tensor
     """
     # Normalize the keypoints
-    if mkpts_0.shape[1] < 8:
+    if  mkpts_0 is None or mkpts_0.shape[1] < 8:
         return None
     
     mkpts_0 = normalize_keypoints(mkpts_0, K_0)
     mkpts_1 = normalize_keypoints(mkpts_1, K_1)
 
-    intr = torch.eye(3, device=K_0.device)
+    intr = torch.eye(3, device=K_0.device).unsqueeze(0)
     F = kornia.geometry.epipolar.find_fundamental(mkpts_0, mkpts_1, confidence, method='8POINT')
     R, t, _ = kornia.geometry.epipolar.motion_from_essential_choose_solution(F, intr, intr, mkpts_0, mkpts_1, None)
     P_est = torch.cat([R, t], dim=-1)
@@ -66,6 +66,9 @@ def relative_pose_error(P_est: torch.Tensor,
     Outputs:
         err: (N) torch.Tensor
     """
+    if P_est is None:
+        return torch.abs(torch.arccos(torch.tensor(-1.))), torch.abs(torch.arccos(torch.tensor(-1.)))
+    
     assert len(P_est.shape) == 3 and len(P_GT.shape) == 3, "Estimated and GT poses must have shape (B, 3, 4)"
 
     R_est, T_est = P_est[:, :3, :3], P_est[:, :3, -1:]
@@ -80,7 +83,7 @@ def relative_pose_error(P_est: torch.Tensor,
         err_R = torch.mean(err_R)
         err_t = torch.mean(err_t)
     
-    return err_R.item(), err_t.item()
+    return err_R, err_t
 
 
 def relative_rotation_error(R_est: torch.Tensor,

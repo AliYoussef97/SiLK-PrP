@@ -125,19 +125,19 @@ def sym_corr_cross_entropy(
     corr_0,
     corr_1,
 ):
-    loss_0, similarity = asym_corr_cross_entropy(
+    loss_0, similarity_0 = asym_corr_cross_entropy(
         lse_0,
         corr_0,
         desc_0,
         desc_1,
     )
-    loss_1, _ = asym_corr_cross_entropy(
+    loss_1, similarity_1 = asym_corr_cross_entropy(
         lse_1,
         corr_1,
         desc_1,
         desc_0,
     )
-    return loss_0 + loss_1, similarity
+    return loss_0 + loss_1, similarity_0, similarity_1
 
 
 def corr_matching_binary_cross_entropy(
@@ -200,6 +200,7 @@ def total_loss(
     logits_1,
     block_size,
 ):
+    
     if block_size is None:  # reduction on full similarity matrix
         x0x1 = desc_0 @ desc_1.T
 
@@ -207,8 +208,6 @@ def total_loss(
         lse_1 = jax.nn.logsumexp(x0x1, axis=0)
         argmax_0 = jnp.argmax(x0x1, axis=1)
         argmax_1 = jnp.argmax(x0x1, axis=0)
-        max_0 = jnp.max(x0x1, axis=1)
-        max_1 = jnp.max(x0x1, axis=0)
     else:  # reduction by scanning blocks of similarity matrix
 
         @delayed_vjp
@@ -217,17 +216,16 @@ def total_loss(
             output = (
                 jax.nn.logsumexp(x0x1, axis=1),
                 jnp.argmax(x0x1, axis=1),
-                jnp.max(x0x1, axis=1),
             )
             return output
 
-        lse_0, argmax_0, max_0 = _scan_reduce(
+        lse_0, argmax_0 = _scan_reduce(
             desc_0,
             desc_1,
             reducer,
             block_size,
         )
-        lse_1, argmax_1, max_1 = _scan_reduce(
+        lse_1, argmax_1 = _scan_reduce(
             desc_1,
             desc_0,
             reducer,
@@ -235,7 +233,7 @@ def total_loss(
         )
 
     # info nce loss
-    loss_0, similarity = sym_corr_cross_entropy(
+    loss_0, similarity_0, similarity_1 = sym_corr_cross_entropy(
         lse_0,
         lse_1,
         desc_0,
@@ -254,4 +252,4 @@ def total_loss(
         logits_1,
     )
     
-    return loss_0, loss_1, precision, recall, correct_mask_0, correct_mask_1, similarity
+    return loss_0, loss_1, precision, recall, correct_mask_0, correct_mask_1, similarity_0, similarity_1

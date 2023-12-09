@@ -214,7 +214,7 @@ def get_correspondences(data: dict,
     corr_forward = positions_to_unidirectional_correspondence(positions_forward, W_d, H_d, 1, ordering="yx")
 
     corr_backward = positions_to_unidirectional_correspondence(positions_backward, W_d, H_d, 1, ordering="yx")
-
+    
     corr_0, corr_1 = keep_mutual_correspondences_only(corr_forward, corr_backward)
 
     return corr_0, corr_1
