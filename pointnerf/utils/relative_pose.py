@@ -26,7 +26,7 @@ def pose_estimation(mkpts_0: torch.Tensor,
                     mkpts_1: torch.Tensor,
                     K_0: torch.Tensor,
                     K_1: torch.Tensor,
-                    confidence: torch.Tensor) -> torch.Tensor:
+                    P_GT: torch.Tensor = None) -> torch.Tensor:
     """
     Estimate the relative pose between two images.
     Inputs:
@@ -34,7 +34,6 @@ def pose_estimation(mkpts_0: torch.Tensor,
         mkpts_1: (B, N, 2) torch.Tensor
         K_0: (B, 3, 3) torch.Tensor
         K_1: (B, 3, 3) torch.Tensor
-        confidence: (B, N) torch.Tensor
     Outputs:
         P_est: (B, 3, 4) torch.Tensor
     """
@@ -46,9 +45,33 @@ def pose_estimation(mkpts_0: torch.Tensor,
     mkpts_1 = normalize_keypoints(mkpts_1, K_1)
 
     intr = torch.eye(3, device=K_0.device).unsqueeze(0)
-    F = kornia.geometry.epipolar.find_fundamental(mkpts_0, mkpts_1, confidence, method='8POINT')
-    R, t, _ = kornia.geometry.epipolar.motion_from_essential_choose_solution(F, intr, intr, mkpts_0, mkpts_1, None)
-    P_est = torch.cat([R, t], dim=-1)
+    F = kornia.geometry.epipolar.find_fundamental(mkpts_0, mkpts_1, None, method='8POINT')
+    
+    # During training
+    if P_GT is not None:
+        
+        # Compute the 4 possible solutions
+        All_R, All_t = kornia.geometry.epipolar.motion_from_essential(F)
+
+        # Compute the relative pose error for each solution and select the best one
+        batched_err = torch.ones(size=(P_GT.shape[0], 1), device=P_GT.device) * torch.inf
+        P_est = torch.zeros_like(P_GT, device=P_GT.device)
+
+        for curr_R, curr_t in zip(All_R.permute(1, 0, 2, 3).contiguous(), All_t.permute(1, 0, 2, 3).contiguous()):
+            
+            # Compute the relative pose error for each batch using the current solution
+            curr_P = torch.cat([curr_R, curr_t], dim=-1)
+            curr_R_err, curr_t_err = relative_pose_error(curr_P, P_GT, train=False)
+            current_err = curr_R_err + curr_t_err
+
+            # Update the best solution for each batch if the current solution is better
+            mask = (current_err < batched_err).squeeze(-1)
+            batched_err[mask] = current_err[mask]
+            P_est[mask] = curr_P[mask]
+
+    else:
+        R, t, _ = kornia.geometry.epipolar.motion_from_essential_choose_solution(F, intr, intr, mkpts_0, mkpts_1, None)
+        P_est = torch.cat([R, t], dim=-1).to(K_0.device)
 
     return P_est
 
@@ -102,7 +125,7 @@ def relative_rotation_error(R_est: torch.Tensor,
     err_R = torch.bmm(R_est.transpose(-1,-2), R_GT) 
     err_R = torch.einsum('bii->b', err_R) # Compute the trace of the dot product for a batch.
     err_R = (err_R - 1.) / 2. 
-    err_R = torch.arccos(torch.clip(err_R, -1, 1)) 
+    err_R = torch.arccos(torch.clip(err_R, -1., 1.)) 
     err_R = torch.abs(err_R) 
     
     return err_R
@@ -122,8 +145,8 @@ def relative_translation_error(T_est: torch.Tensor,
     assert len(T_est.shape) == 3 and len(T_GT.shape) == 3, "T_est and T_GT must have shape (B, 3, 1)"
 
     n = torch.linalg.norm(T_est, dim=1) * torch.linalg.norm(T_GT, dim=1)
-    t_err = (T_est * T_GT).sum(dim=1) / n
-    t_err = torch.arccos(torch.clip(t_err, -1, 1))
+    t_err = (T_est * T_GT).sum(dim=1)
+    t_err = torch.arccos(torch.clip(t_err/n, -1., 1.))
     t_err = torch.abs(t_err)
     
     return t_err

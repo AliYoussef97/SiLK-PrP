@@ -30,7 +30,6 @@ def train_val(config: dict,
     """
 
     print(f'\033[92m🚀 Training started for {config["model"]["class_name"].upper()} model on {config["data"]["class_name"]}\033[0m')
-
     optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["learning_rate"])
 
     loss_fn = Loss(config["training"]["block_size"],
@@ -78,17 +77,17 @@ def train_val(config: dict,
                                                  bias=config["training"]["bias"],
                                                  device=device)
 
-            desc_loss, kpts_loss, precision, recall, mkpts_0, mkpts_1, confidence = loss_fn(desc_norm_0,
-                                                                                            desc_norm_1,
-                                                                                            corr_0,
-                                                                                            corr_1,
-                                                                                            logits_0,
-                                                                                            logits_1)
+            desc_loss, kpts_loss, precision, recall, mkpts_0, mkpts_1 = loss_fn(desc_norm_0,
+                                                                                desc_norm_1,
+                                                                                corr_0,
+                                                                                corr_1,
+                                                                                logits_0,
+                                                                                logits_1)
             P_est = pose_estimation(mkpts_0,
                                     mkpts_1,
                                     batch["camera_intrinsic_matrix"],
                                     batch["camera_intrinsic_matrix"],
-                                    confidence)
+                                    batch["GT_relative_pose"])
 
             rot_loss, transl_loss = relative_pose_error(P_est,
                                                         batch["GT_relative_pose"],
@@ -183,17 +182,17 @@ def validate(config, model, validation_loader, loss_fn, device= "cpu"):
                                                      config["training"]["feature_size"],
                                                      bias=config["training"]["bias"])
 
-        val_desc_loss, val_kpts_loss, val_precision, val_recall, val_mkpts_0, val_mkpts_1, val_confidence = loss_fn(val_desc_norm_0,
-                                                                                                                    val_desc_norm_1,
-                                                                                                                    val_corr_0,
-                                                                                                                    val_corr_1,
-                                                                                                                    val_logits_0,
-                                                                                                                    val_logits_1)
+        val_desc_loss, val_kpts_loss, val_precision, val_recall, val_mkpts_0, val_mkpts_1 = loss_fn(val_desc_norm_0,
+                                                                                                    val_desc_norm_1,
+                                                                                                    val_corr_0,
+                                                                                                    val_corr_1,
+                                                                                                    val_logits_0,
+                                                                                                    val_logits_1)
         val_P_est = pose_estimation(val_mkpts_0,
                                     val_mkpts_1,
                                     val_batch["camera_intrinsic_matrix"],
                                     val_batch["camera_intrinsic_matrix"],
-                                    val_confidence)
+                                    val_batch["GT_relative_pose"])
         
         val_rot_loss, val_transl_loss = relative_pose_error(val_P_est,
                                                             val_batch["GT_relative_pose"],

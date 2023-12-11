@@ -5,7 +5,7 @@ data:
     fov: 44
     truncate: False
     downsample: False
-    downsample_size: [240,320]
+    downsample_size: [120,160]
     batch_size: 1
     augmentation:
       photometric:
@@ -42,17 +42,17 @@ model:
       normalization: 'BatchNorm2d'
       activation: 'ReLU'
     detector_head:
-      channels: [128, 1]
+      channels: [128, 128, 1]
       normalization: 'BatchNorm2d'
       activation: 'ReLU'
     descriptor_head:
-      channels: [128, 128]
+      channels: [128, 128, 128]
       normalization: 'BatchNorm2d'
       activation: 'ReLU'
     scale_factor: 1.41
 training:
   learning_rate: 0.0001
-  block_size: 3732
+  block_size: 1244
   jax_device: 'cuda:1'
   temperature: 0.1
   bias: 9.

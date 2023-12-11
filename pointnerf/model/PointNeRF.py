@@ -14,10 +14,10 @@ class Pointnerf(nn.Module):
 
     def forward(self, x):
 
-        x = self.backbone(x)
+        feature_map = self.backbone(x)
 
-        logits = self.detector_head(x)
+        logits = self.detector_head(feature_map)
 
-        descriptors = self.descriptor_head(x)
+        descriptors = self.descriptor_head(feature_map)
 
         return {"logits": logits, "raw_descriptors": descriptors}

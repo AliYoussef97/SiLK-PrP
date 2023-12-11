@@ -34,8 +34,8 @@ def match_nn_double_softmax(match_prob: torch.Tensor,
     indices_1 = torch.argmin(match_prob, dim=1) # each index in desc_0 has a corresponding index in desc_1
 
     if cross_check:
-        matches_1 = torch.argmin(match_prob, dim=0) # each index in desc_1 has a corresponding index in desc_0
-        mask = torch.eq(indices_0, matches_1[indices_1]) # cross-checking
+        matches_0 = torch.argmin(match_prob, dim=0) # each index in desc_1 has a corresponding index in desc_0
+        mask = torch.eq(indices_0, matches_0[indices_1]) # cross-checking
         indices_0 = indices_0[mask] 
         indices_1 = indices_1[mask]
     

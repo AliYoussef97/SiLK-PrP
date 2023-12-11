@@ -114,7 +114,7 @@ def asym_corr_cross_entropy(
 
     log_p_corr /= n_corr
 
-    return -log_p_corr, log_num
+    return -log_p_corr
 
 
 def sym_corr_cross_entropy(
@@ -125,19 +125,19 @@ def sym_corr_cross_entropy(
     corr_0,
     corr_1,
 ):
-    loss_0, similarity_0 = asym_corr_cross_entropy(
+    loss_0 = asym_corr_cross_entropy(
         lse_0,
         corr_0,
         desc_0,
         desc_1,
     )
-    loss_1, similarity_1 = asym_corr_cross_entropy(
+    loss_1 = asym_corr_cross_entropy(
         lse_1,
         corr_1,
         desc_1,
         desc_0,
     )
-    return loss_0 + loss_1, similarity_0, similarity_1
+    return loss_0 + loss_1
 
 
 def corr_matching_binary_cross_entropy(
@@ -188,6 +188,9 @@ def corr_matching_binary_cross_entropy(
     precision = tp_mask_0.sum() / pr_mask_0.sum()
     recall = tp_mask_0.sum() / gt_mask_0.sum()
 
+    correct_mask_0 = correct_mask_0 * m0
+    correct_mask_1 = correct_mask_1 * m1
+
     return loss, precision, recall, correct_mask_0, correct_mask_1
 
 
@@ -233,7 +236,7 @@ def total_loss(
         )
 
     # info nce loss
-    loss_0, similarity_0, similarity_1 = sym_corr_cross_entropy(
+    loss_0 = sym_corr_cross_entropy(
         lse_0,
         lse_1,
         desc_0,
@@ -252,4 +255,4 @@ def total_loss(
         logits_1,
     )
     
-    return loss_0, loss_1, precision, recall, correct_mask_0, correct_mask_1, similarity_0, similarity_1
+    return loss_0, loss_1, precision, recall, correct_mask_0, correct_mask_1

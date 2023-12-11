@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 import torchvision
 from pointnerf.data.data_utils.photometric_augmentation import Photometric_aug
 from pointnerf.settings import DATA_PATH
+from kornia.geometry.epipolar.projection import scale_intrinsics
 
 class NeRF(Dataset):
     def __init__(self, data_config, task = "training" ,device="cpu") -> None:
@@ -129,6 +130,7 @@ class NeRF(Dataset):
     
     def downsample_data(self, data):
         
+        H, W = self.config["image_size"]
         H_ds, W_ds = self.config["downsample_size"]
         
         i,j,h,w = torchvision.transforms.RandomCrop.get_params(data["raw"]["image"], output_size=(H_ds,W_ds))
@@ -139,7 +141,8 @@ class NeRF(Dataset):
         data["raw"]["input_depth"] = data["raw"]["input_depth"][i:i+h, j:j+w]
         data["warp"]["warped_depth"] = data["warp"]["warped_depth"][i:i+h, j:j+w]
 
-        data["camera_intrinsic_matrix"] = self.get_camera_intrinsic(self.config["downsample_size"],self.config["fov"])
+        scale = torch.tensor([H_ds/H], dtype=torch.float32, device=self.device)
+        data["camera_intrinsic_matrix"] = scale_intrinsics(data["camera_intrinsic_matrix"].unsqueeze(0), scale).squeeze(0)
 
         return data
     
