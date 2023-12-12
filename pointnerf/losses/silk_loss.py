@@ -14,7 +14,7 @@ import jax
 import pointnerf.losses.jax_loss as jax_loss
 from pointnerf.losses.jax_functions import jax2torch
 from pointnerf.model.backbone.model_utils import logits_to_probabilities, probabilities_top_k, prob_map_to_points_scores
-torch.set_printoptions(threshold=100000)
+
 positions_to_unidirectional_correspondence = jax2torch(
     jax.jit(
         jax.vmap(
@@ -135,6 +135,7 @@ class Loss(torch.nn.Module):
                                                                                                  logits_1,
                                                                                                  block_size=self._block_size,
                                                                                                  jax_device=self._jax_device)
+
         # If no mutual correct matches, return None
         if (correct_mask_0.sum() < 8) or (correct_mask_1.sum() < 8):
             m_points_0 = m_points_1 = None

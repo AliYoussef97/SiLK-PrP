@@ -1,0 +1,13 @@
+jax==0.4.16
+kornia==0.7.0
+matplotlib==3.8.2
+numpy==1.24.1
+PyYAML==6.0.1
+PyYAML==6.0.1
+Requests==2.31.0
+setuptools==68.0.0
+setuptools==69.0.2
+torch==2.1.1+cu121
+torchvision==0.16.1+cu121
+tqdm==4.65.0
+tyro==0.5.7

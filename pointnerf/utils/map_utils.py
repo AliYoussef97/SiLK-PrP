@@ -178,6 +178,8 @@ def get_correspondences(data: dict,
 
     H_d, W_d = shape
 
+    B = data["raw"]["input_depth"].shape[0]
+
     positions = create_meshgrid(
                 H_d,
                 W_d,
@@ -185,8 +187,8 @@ def get_correspondences(data: dict,
                 normalized=False,
                 dtype=None,
             )
-    positions = positions.expand(1, -1, -1, -1)  # add batch dim
-    positions = positions.reshape(1, -1, 2)
+    positions = positions.expand(B, -1, -1, -1)  # add batch dim
+    positions = positions.reshape(B, -1, 2)
     positions += bias
 
     

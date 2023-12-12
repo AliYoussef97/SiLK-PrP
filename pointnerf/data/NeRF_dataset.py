@@ -114,7 +114,7 @@ class NeRF(Dataset):
         '''
         lower_bound = (random_frame_number // 1000) * 1000
         upper_bound = lower_bound + 1000
-        return random.randint(lower_bound, upper_bound)
+        return random.randint(lower_bound, upper_bound-1)
 
     def read_image(self, image: str) -> torch.Tensor:
         '''
@@ -141,8 +141,12 @@ class NeRF(Dataset):
         data["raw"]["input_depth"] = data["raw"]["input_depth"][i:i+h, j:j+w]
         data["warp"]["warped_depth"] = data["warp"]["warped_depth"][i:i+h, j:j+w]
 
-        scale = torch.tensor([H_ds/H], dtype=torch.float32, device=self.device)
-        data["camera_intrinsic_matrix"] = scale_intrinsics(data["camera_intrinsic_matrix"].unsqueeze(0), scale).squeeze(0)
+        scale_H = torch.tensor([H_ds/H], dtype=torch.float32, device=self.device).squeeze()
+        scale_W = torch.tensor([W_ds/W], dtype=torch.float32, device=self.device).squeeze()
+        data["camera_intrinsic_matrix"][0,0] *= scale_H
+        data["camera_intrinsic_matrix"][1,1] *= scale_H # NeRF data focal length computed using Height FOV only.
+        data["camera_intrinsic_matrix"][0,2] *= scale_W
+        data["camera_intrinsic_matrix"][1,2] *= scale_H
 
         return data
     
@@ -212,7 +216,7 @@ class NeRF(Dataset):
         
         if self.config["downsample"]:
             data = self.downsample_data(data)
-        
+
         return data
     
     def batch_collator(self, batch: list) -> dict:
@@ -232,8 +236,6 @@ class NeRF(Dataset):
     
         input_translations = torch.stack([item['raw']['input_translation'] for item in batch]) # size=(batch_size,3,1)
     
-        intrinsic_matrix = torch.stack([item['camera_intrinsic_matrix'] for item in batch]) # size=(batch_size,3,3)
-
         warped_images = torch.stack([item['warp']['image'].unsqueeze(0) for item in batch]) # size=(batch_size,1,H,W)
 
         warped_depths = torch.stack([item['warp']['warped_depth'] for item in batch]) # size=(batch_size,H,W)

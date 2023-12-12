@@ -30,6 +30,7 @@ def train_val(config: dict,
     """
 
     print(f'\033[92m🚀 Training started for {config["model"]["class_name"].upper()} model on {config["data"]["class_name"]}\033[0m')
+
     optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["learning_rate"])
 
     loss_fn = Loss(config["training"]["block_size"],

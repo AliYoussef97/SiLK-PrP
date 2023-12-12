@@ -52,7 +52,7 @@ model:
     scale_factor: 1.41
 training:
   learning_rate: 0.0001
-  block_size: 1244
+  block_size: 3732
   jax_device: 'cuda:1'
   temperature: 0.1
   bias: 9.
