@@ -1,3 +1,4 @@
+
 import tyro
 import yaml
 import torch
@@ -7,7 +8,7 @@ from dataclasses import dataclass
 from pointnerf.settings import CKPT_PATH
 from pointnerf.utils.get_model import get_model
 from pointnerf.utils.data_loaders import get_loader
-from pointnerf.engine_solvers.train import train_val
+from pointnerf.engine_solvers.train import Trainer
 
 
 @dataclass
@@ -60,19 +61,21 @@ class main():
                 print(f'\033[92m✅ Loaded pretrained model \033[0m')
 
                 self.iteration = pretrained_dict["iteration"]
+            
+            if self.config["continue_training"]:
+                iteration = self.iteration
+            else:
+                iteration = 0
 
-            self.train()
-    
-    def train(self):
+        Trainer(config=self.config,
+                model=self.model,
+                train_loader=self.dataloader["train"],
+                validation_loader=self.dataloader["validation"],
+                iteration=iteration,
+                device=self.device,
+                ddp=False)
+        
 
-        if self.config["continue_training"]:
-            iteration = self.iteration
-        else:
-            iteration = 0
-        
-        train_val(self.config, self.model, 
-                  self.dataloader["train"], self.dataloader["validation"], 
-                  iteration, self.device)
-        
+
 if __name__ == '__main__':
     tyro.cli(main)
