@@ -194,7 +194,7 @@ class NeRF(Dataset):
         warped_depth = np.load(self.samples["depth_paths"][random_frame_idx])
         warped_depth = torch.as_tensor(warped_depth, dtype=torch.float32, device=self.device)
 
-        GT_relative_pose = self.relative_pose(input_transformation, warped_transformation)
+        gt_relative_pose = self.relative_pose(input_transformation, warped_transformation)
 
         # Apply photometric augmentation
         input_image, warped_image = input_image/255.0, warped_image/255.0
@@ -211,7 +211,7 @@ class NeRF(Dataset):
                         'warped_translation':warped_translation},
                 "name":input_name,
                 "warped_name":warped_name,
-                "GT_relative_pose":GT_relative_pose,
+                "gt_relative_pose":gt_relative_pose,
                 "camera_intrinsic_matrix":self.camera_intrinsic_matrix}
         
         if self.config["downsample"]:
@@ -250,7 +250,7 @@ class NeRF(Dataset):
             
         intrinsic_matrix = torch.stack([item['camera_intrinsic_matrix'] for item in batch]) # size=(batch_size,3,3)
 
-        GT_relative_pose = torch.stack([item['GT_relative_pose'] for item in batch]) # size=(batch_size,3,4)
+        gt_relative_poses = torch.stack([item['gt_relative_pose'] for item in batch]) # size=(batch_size,3,4)
             
         return {"raw":{'image':images,
                        'input_depth':input_depths,
@@ -262,5 +262,5 @@ class NeRF(Dataset):
                         'warped_translation':warped_translations},
                 "name":input_names,
                 "warped_name":warped_names,
-                "GT_relative_pose": GT_relative_pose,
+                "gt_relative_pose": gt_relative_poses,
                 "camera_intrinsic_matrix":intrinsic_matrix}

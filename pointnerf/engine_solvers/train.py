@@ -113,10 +113,10 @@ class Trainer:
                                 mkpts_1,
                                 batch["camera_intrinsic_matrix"],
                                 batch["camera_intrinsic_matrix"],
-                                batch["GT_relative_pose"])
+                                batch["gt_relative_pose"])
 
         rot_loss, transl_loss = relative_pose_error(P_est,
-                                                    batch["GT_relative_pose"],
+                                                    batch["gt_relative_pose"],
                                                     train=True)
 
         loss = desc_loss + kpts_loss + (rot_loss + transl_loss)
