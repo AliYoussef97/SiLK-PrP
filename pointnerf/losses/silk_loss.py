@@ -125,7 +125,7 @@ class Loss(torch.nn.Module):
         prob_map_0, prob_map_1 = prob_map_0.squeeze(-1), prob_map_1.squeeze(-1)
 
         logits_0, logits_1 = self.flatten(logits_0), self.flatten(logits_1)
-        logits_0, logits_1 = logits_1.squeeze(-1), logits_1.squeeze(-1)
+        logits_0, logits_1 = logits_0.squeeze(-1), logits_1.squeeze(-1)
         
         desc_loss, keypoint_loss, precision, recall, correct_mask_0, correct_mask_1 = total_loss(desc_0,
                                                                                                  desc_1,
@@ -137,7 +137,7 @@ class Loss(torch.nn.Module):
                                                                                                  jax_device=self._jax_device)
 
         # If no mutual correct matches, return None
-        if (correct_mask_0.sum() < 8) or (correct_mask_1.sum() < 8):
+        if (correct_mask_0.sum() <= 25) or (correct_mask_1.sum() <= 25):
             m_points_0 = m_points_1 = None
             return desc_loss, keypoint_loss, precision, recall, m_points_0, m_points_1
 
