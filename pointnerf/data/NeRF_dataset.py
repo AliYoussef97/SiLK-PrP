@@ -9,7 +9,7 @@ from pointnerf.settings import DATA_PATH
 from kornia.geometry.epipolar.projection import scale_intrinsics
 
 class NeRF(Dataset):
-    def __init__(self, data_config, task = "training" ,device="cpu") -> None:
+    def __init__(self, data_config, task = "training", device="cpu") -> None:
         super(NeRF, self).__init__()
         self.config = data_config
         self.device = device
@@ -198,7 +198,8 @@ class NeRF(Dataset):
 
         # Apply photometric augmentation
         input_image, warped_image = input_image/255.0, warped_image/255.0
-        input_image, warped_image = self.photometric_aug(input_image), self.photometric_aug(warped_image)
+        if self.action == "training":
+            input_image, warped_image = self.photometric_aug(input_image), self.photometric_aug(warped_image)
         input_image, warped_image = input_image.squeeze(), warped_image.squeeze()
 
         data = {"raw":{'image':input_image,

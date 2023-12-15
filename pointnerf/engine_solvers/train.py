@@ -152,7 +152,7 @@ class Trainer:
 
             self.model.train()
                 
-            self.writer.add_scalar("Tunning Validation loss", running_val_loss, self.iteration)
+            self.writer.add_scalar("Training Validation loss", running_val_loss, self.iteration)
             self.writer.add_scalar("Validation Precision", val_precision, self.iteration)
             self.writer.add_scalar("Validation Recall", val_recall, self.iteration)
             
