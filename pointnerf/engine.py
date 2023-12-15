@@ -72,8 +72,7 @@ class main():
                 train_loader=self.dataloader["train"],
                 validation_loader=self.dataloader["validation"],
                 iteration=iteration,
-                device=self.device,
-                ddp=False)
+                device=self.device)
         
 
 

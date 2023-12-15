@@ -23,14 +23,12 @@ class Trainer:
     Outputs:
         None
     """
-    def __init__(self, config, model, train_loader, validation_loader=None, iteration=0, device="cpu", ddp=False):
+    def __init__(self, config, model, train_loader, validation_loader=None, iteration=0, device="cpu"):
         print(f'\033[92m🚀 Training started for {config["model"]["class_name"].upper()} model on {config["data"]["class_name"]}\033[0m')
 
         self.config = config
         
         self.model = model
-
-        self.ddp = ddp
         
         self.train_loader = train_loader
         
@@ -121,6 +119,14 @@ class Trainer:
 
         loss = desc_loss + kpts_loss + (rot_loss + transl_loss)
 
+        self.optimizer.zero_grad()
+
+        loss.backward()
+
+        self.optimizer.step()
+
+        self.running_loss.append(loss.item())
+
         self.writer.add_scalar("Descriptor loss", desc_loss, self.iteration)
         self.writer.add_scalar("Keypoints loss", kpts_loss, self.iteration)
         self.writer.add_scalar("Precision", precision, self.iteration)
@@ -128,14 +134,6 @@ class Trainer:
         self.writer.add_scalar("Rotation loss", torch.rad2deg(rot_loss), self.iteration)
         self.writer.add_scalar("Translation loss", torch.rad2deg(transl_loss), self.iteration)
         self.writer.add_scalar("Total loss", loss, self.iteration)
-
-        self.running_loss.append(loss.item())
-
-        self.optimizer.zero_grad()
-
-        loss.backward()
-
-        self.optimizer.step()
 
         self.iteration += 1
         
@@ -170,14 +168,9 @@ class Trainer:
 
 
     def save_checkpoint(self):
-        if self.ddp:
-            torch.save({"iteration":self.iteration,
-                        "model_state_dict":self.model.module.state_dict()},
-                        Path(self.checkpoint_path,f'{self.checkpoint_name}_{self.iteration}.pth'))
-        else:
-            torch.save({"iteration":self.iteration,
-                        "model_state_dict":self.model.state_dict()},
-                        Path(self.checkpoint_path,f'{self.checkpoint_name}_{self.iteration}.pth'))
+        torch.save({"iteration":self.iteration,
+                    "model_state_dict":self.model.state_dict()},
+                    Path(self.checkpoint_path,f'{self.checkpoint_name}_{self.iteration}.pth'))
     
 
     @torch.no_grad()         
@@ -225,7 +218,6 @@ class Trainer:
             val_loss = val_desc_loss + val_kpts_loss + (val_rot_loss + val_transl_loss)
 
             running_val_loss.append(val_loss.item())
-
             precision.append(val_precision)
             recall.append(val_recall)
         
