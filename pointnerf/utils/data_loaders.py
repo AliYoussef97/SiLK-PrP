@@ -18,7 +18,8 @@ def get_loader(config, task, device="cpu", validate_training=False):
                                         collate_fn=dataset["train"].batch_collator, 
                                         shuffle=True,
                                         pin_memory=True, 
-                                        num_workers=0),
+                                        persistent_workers=True,
+                                        num_workers=2),
                         "validation":None}
         if validate_training: 
 
@@ -29,6 +30,7 @@ def get_loader(config, task, device="cpu", validate_training=False):
                                                 collate_fn=dataset["validation"].batch_collator,
                                                 shuffle=False,
                                                 pin_memory=True,
-                                                num_workers=0)
+                                                persistent_workers=True,
+                                                num_workers=2)
     
     return data_loader
