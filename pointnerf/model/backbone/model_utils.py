@@ -73,7 +73,7 @@ def prob_map_to_points_scores(prob_map: torch.Tensor,
     return points_with_scores
 
 def normalise_raw_descriptors(raw_descriptors: torch.Tensor, 
-                                scale: float = 1.41) -> torch.Tensor:
+                              scale: float = 1.41) -> torch.Tensor:
     """
     Normalise raw descriptors to unit length.
     Inputs:
@@ -97,7 +97,7 @@ def dense_normalised_descriptors(normalised_descriptors: torch.Tensor) -> torch.
     return dense_descriptors
     
 def sparse_normalised_descriptors(normalised_descriptors: torch.Tensor, 
-                                    points_with_scores: torch.Tensor) -> torch.Tensor:
+                                  points_with_scores: torch.Tensor) -> torch.Tensor:
     """
     Convert normalised descriptors to sparse descriptors (Only for batch size of 1)
     Inputs:

@@ -93,48 +93,61 @@ def warp_points_NeRF(points: torch.Tensor,
     """
     Warp keypoints from the input frame to a different viewpoint frame.
     - Input
-        - points: (N,2) tensor
-        - depth: (H,W) tensor
-        - cam_intrinsic_matrix: (3,3) tensor
-        - input_rotation: (3,3) tensor
-        - input_translation: (3,1) tensor
-        - warp_rotation: (3,3) tensor
-        - warp_translation: (3,1) tensor
+        - points: (N, 2) tensor
+        - depth: (B, H, W) tensor
+        - cam_intrinsic_matrix: (B, 3, 3) tensor
+        - input_rotation: (B, 3, 3) tensor
+        - input_translation: (B, 3, 1) tensor
+        - warp_rotation: (B, 3, 3) tensor
+        - warp_translation: (B, 3, 1) tensor
     - Output
-        - warped_points: (N,2) tensor
+        - warped_points: (B, N, 2) tensor
     """
     
     if len(points.shape)==0:
         return points
 
-    depth_values_batch = []
-    for dp in depth:     
-        depth_value_sample = []
-        for p in points:
-            p = p.floor().to(torch.int32)
-            if p[0] <= 2 or p[1] <= 2 or p[0] >= dp.shape[0]-2 or p[1] >= dp.shape[1]-2:
-                # Case where can not create a 5x5 depth patch, close to image border.
-                depth_current = dp[p[0],p[1]]
-                depth_value_sample.append(depth_current)
-                continue
-            else:
-                # Case where can create a 5x5 depth patch.
-                depth_values = dp[p[0]-2:p[0]+3,p[1]-2:p[1]+3]
-                depth_values_flattened = depth_values.flatten()
-                min_depth, max_depth = torch.min(depth_values_flattened), torch.max(depth_values_flattened)
-                if (max_depth - min_depth) >= 0.03:
-                    # Case where there is a large difference in depth values in the 5x5 depth patch.
-                    # most likely at the edge of an object.
-                    depth_value_sample.append(min_depth)
-                else:
-                    # Case where there is a small difference in depth values in the 5x5 depth patch.
-                    depth_current = dp[p[0],p[1]]
-                    depth_value_sample.append(depth_current)
-
-        depth_values_batch.append(torch.tensor(depth_value_sample))
-
-    depth_values = torch.stack(depth_values_batch).unsqueeze(1).to(device)
+    B, H, W = depth.shape
     
+    points_temp = points.floor().to(torch.int32)
+    
+    # mask points that are close to the border
+    mask = (points_temp[:,0] <= 2) | (points_temp[:,1] <= 2) | (points_temp[:,0] >= H-2) | (points_temp[:,1] >= W-2)
+    
+    depth_batch = torch.zeros((B, points_temp.shape[0]), device=device)
+
+    for i, dp in enumerate(depth):
+
+        # Take depth values at feature points location if they are close to the border
+        depth_batch[i, mask] = dp[points_temp[mask, 0], points_temp[mask, 1]]
+
+        dp = dp.flatten()
+
+        flat_points = points_temp[:,0] * W + points_temp[:,1]
+
+        # Create 5x5 (flattned) patch around each feature point
+        offset = torch.tensor([-2*W-2, -2*W-1, -2*W, -2*W+1, -2*W+2,
+                                 -W-2,   -W-1,   -W,   -W+1,  -W+2,
+                                  -2,     -1,     0,     1,     2,
+                                  W-2,    W-1,    W,    W+1,   W+2,
+                                2*W-2,  2*W-1,  2*W,  2*W+1, 2*W+2], 
+                                device=device)
+        
+        depth_values = torch.empty((points_temp[~mask].shape[0], len(offset)), device=device)
+
+        # Each row of depth_values contains the depth values of the 5x5 flattned patch around a feature point
+        for j, off in enumerate(offset):
+            patch = flat_points[~mask] + off
+            depth_values[:,j] = dp[patch]
+        
+        min_depth, max_depth = torch.min(depth_values, dim=1)[0], torch.max(depth_values, dim=1)[0]
+
+        # If there is a large difference between the min and max depth values of the patch, take the min depth value,
+        # otherwise take the depth value at the feature point location
+        depth_batch[i,~mask] = torch.where((max_depth - min_depth) >= 0.03, min_depth, dp[flat_points[~mask]].flatten())
+
+    depth_values = depth_batch.unsqueeze(1).to(device)
+
     points = torch.fliplr(points)
     
     points = torch.cat((points, torch.ones((points.shape[0], 1),device=device)),dim=1)

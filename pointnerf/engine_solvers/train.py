@@ -102,11 +102,11 @@ class Trainer:
                                              device=self.device)
 
         desc_loss, kpts_loss, precision, recall, mkpts_0, mkpts_1 = self.loss_fn(desc_norm_0,
-                                                                                    desc_norm_1,
-                                                                                    corr_0,
-                                                                                    corr_1,
-                                                                                    logits_0,
-                                                                                    logits_1)
+                                                                                 desc_norm_1,
+                                                                                 corr_0,
+                                                                                 corr_1,
+                                                                                 logits_0,
+                                                                                 logits_1)
         P_est = pose_estimation(mkpts_0,
                                 mkpts_1,
                                 batch["camera_intrinsic_matrix"],
