@@ -112,7 +112,7 @@ def warp_points_NeRF(points: torch.Tensor,
     points_temp = points.floor().to(torch.int32)
     
     # mask points that are close to the border
-    mask = (points_temp[:,0] <= 2) | (points_temp[:,1] <= 2) | (points_temp[:,0] >= H-2) | (points_temp[:,1] >= W-2)
+    mask = (points_temp[:, 0] <= 2) | (points_temp[:, 1] <= 2) | (points_temp[:, 0] >= H-2) | (points_temp[:, 1] >= W-2)
     
     depth_batch = torch.zeros((B, points_temp.shape[0]), device=device)
 
@@ -123,7 +123,7 @@ def warp_points_NeRF(points: torch.Tensor,
 
         dp = dp.flatten()
 
-        flat_points = points_temp[:,0] * W + points_temp[:,1]
+        flat_points = points_temp[:, 0] * W + points_temp[:, 1]
 
         # Create 5x5 (flattned) patch around each feature point
         offset = torch.tensor([-2*W-2, -2*W-1, -2*W, -2*W+1, -2*W+2,
@@ -138,29 +138,29 @@ def warp_points_NeRF(points: torch.Tensor,
         # Each row of depth_values contains the depth values of the 5x5 flattned patch around a feature point
         for j, off in enumerate(offset):
             patch = flat_points[~mask] + off
-            depth_values[:,j] = dp[patch]
+            depth_values[:, j] = dp[patch]
         
         min_depth, max_depth = torch.min(depth_values, dim=1)[0], torch.max(depth_values, dim=1)[0]
 
         # If there is a large difference between the min and max depth values of the patch, take the min depth value,
         # otherwise take the depth value at the feature point location
-        depth_batch[i,~mask] = torch.where((max_depth - min_depth) >= 0.03, min_depth, dp[flat_points[~mask]].flatten())
+        depth_batch[i, ~mask] = torch.where((max_depth - min_depth) >= 0.03, min_depth, dp[flat_points[~mask]].flatten())
 
     depth_values = depth_batch.unsqueeze(1).to(device)
 
     points = torch.fliplr(points)
     
-    points = torch.cat((points, torch.ones((points.shape[0], 1),device=device)),dim=1)
+    points = torch.cat((points, torch.ones((points.shape[0], 1), dtype=points.dtype, device=device)), dim=1)
     warped_points = torch.tensordot(torch.linalg.inv(cam_intrinsic_matrix), points, dims=([2], [1]))
     warped_points /= torch.linalg.norm(warped_points, dim=(1), keepdim=True)
     warped_points *= depth_values
-    warped_points = input_rotation@warped_points + input_translation    
+    warped_points = input_rotation @ warped_points + input_translation    
     warped_points = torch.linalg.inv(warp_rotation) @ warped_points - (torch.linalg.inv(warp_rotation) @ warp_translation)
     warped_points = cam_intrinsic_matrix @ warped_points
 
     warped_points = warped_points.transpose(2, 1)
     warped_points = warped_points[:,:, :2] / warped_points[:,:, 2:]
-    warped_points = torch.flip(warped_points,dims=(2,))
+    warped_points = torch.flip(warped_points, dims=(2,))
 
     return warped_points
 

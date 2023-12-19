@@ -17,7 +17,7 @@ def get_loader(config, task, device="cpu", validate_training=False):
                                         batch_size=batch_size,
                                         collate_fn=dataset["train"].batch_collator, 
                                         shuffle=True,
-                                        pin_memory=True, 
+                                        pin_memory=True,
                                         persistent_workers=True,
                                         num_workers=2),
                         "validation":None}
