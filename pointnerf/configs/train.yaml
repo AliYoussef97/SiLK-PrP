@@ -9,31 +9,26 @@ data:
     batch_size: 1
     augmentation:
       photometric:
+        p: 0.95
         Parameters:
           RandomGamma: 
-            p: .2
-            gamma: [1.05, 1.25]
-          RandomBrightness:
-            p: .5
-            brightness: [0.8, 1.2]
-          RandomContrast:
-            p: .2
-            contrast: [0.5, 1.5]
-          RandomGaussianBlur:
-            p: .2
-            kernel_size: [3, 7]
-            sigma: [0.8, 2.5]
-          RandomMotionBlur:
-            p: .2
-            kernel_size: !!python/tuple [5, 9]
-            angle: [-120, 120]
-            direction: [-1, 1]
-            border_type: 1
-            resample: bilinear
-          RandomGaussianNoise:
-            p: .5
-            mean: 0.
-            std: 0.04
+            p: 0.1
+            gamma_limit: [15, 65]
+          HueSaturationValue:
+            p: 0.1
+            val_shift_limit: [-100, -40]
+          Blur:
+            p: 0.1
+            blur_limit: [3, 9]
+          MotionBlur:
+            p: 0.2
+            blur_limit: [3, 25]
+          RandomBrightnessContrast:
+            p: 0.5
+            brightness_limit: [-0.3, 0.0]
+            contrast_limit: [-0.5, 0.3]
+          GaussNoise:
+            p: 0.5
 model:
     script: 'PointNeRF'
     class_name: 'Pointnerf'

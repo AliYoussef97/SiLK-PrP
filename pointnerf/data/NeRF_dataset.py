@@ -4,6 +4,7 @@ import random
 from pathlib import Path
 from torch.utils.data import Dataset
 import torchvision
+from torchvision.transforms import Grayscale
 from pointnerf.data.data_utils.photometric_augmentation import Photometric_aug
 from pointnerf.settings import DATA_PATH
 from kornia.geometry.epipolar.projection import scale_intrinsics
@@ -125,8 +126,19 @@ class NeRF(Dataset):
             image: (1,H,W) torch.Tensor
         '''
         image = torchvision.io.read_file(image)
-        image = torchvision.io.decode_image(image,torchvision.io.ImageReadMode.GRAY)
-        return image.unsqueeze(0).to(torch.float32).to(self.device)
+        image = torchvision.io.decode_image(image,torchvision.io.ImageReadMode.RGB)
+        return image
+    
+    def RGB_to_Grayscale(self, image: torch.Tensor) -> torch.Tensor:
+        '''
+        Convert RGB image to Grayscale.
+        Input:
+            image: (1, 3, H, W) torch.Tensor
+        Output:
+            image: (1, 1, H, W) torch.Tensor
+        '''
+        image = Grayscale(num_output_channels=1)(image)
+        return image/255.0
     
     def downsample_data(self, data):
         
@@ -197,9 +209,10 @@ class NeRF(Dataset):
         gt_relative_pose = self.relative_pose(input_transformation, warped_transformation)
 
         # Apply photometric augmentation
-        input_image, warped_image = input_image/255.0, warped_image/255.0
         if self.action == "training":
             input_image, warped_image = self.photometric_aug(input_image), self.photometric_aug(warped_image)
+        
+        input_image, warped_image = self.RGB_to_Grayscale(input_image), self.RGB_to_Grayscale(warped_image)
         input_image, warped_image = input_image.squeeze(), warped_image.squeeze()
 
         data = {"raw":{'image':input_image,
