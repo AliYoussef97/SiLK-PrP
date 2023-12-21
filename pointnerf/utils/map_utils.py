@@ -124,20 +124,16 @@ def warp_points_NeRF(points: torch.Tensor,
         dp = dp.flatten()
 
         flat_points = points_temp[:, 0] * W + points_temp[:, 1]
-
-        # Create 5x5 (flattned) patch around each feature point
-        offset = torch.tensor([-2*W-2, -2*W-1, -2*W, -2*W+1, -2*W+2,
-                                 -W-2,   -W-1,   -W,   -W+1,  -W+2,
-                                  -2,     -1,     0,     1,     2,
-                                  W-2,    W-1,    W,    W+1,   W+2,
-                                2*W-2,  2*W-1,  2*W,  2*W+1, 2*W+2], 
-                                device=device)
         
+        # Create 5x5 (flattned) patch around each feature point
+        offset = torch.arange(-2, 3, device=device)
+        offset = torch.stack((offset.repeat_interleave(5), 
+                              offset.repeat(5)), dim=1).T
+
         depth_values = torch.empty((points_temp[~mask].shape[0], len(offset)), device=device)
 
-        # Each row of depth_values contains the depth values of the 5x5 flattned patch around a feature point
         for j, off in enumerate(offset):
-            patch = flat_points[~mask] + off
+            patch = flat_points[~mask] + off[0] * W + off[1]
             depth_values[:, j] = dp[patch]
         
         min_depth, max_depth = torch.min(depth_values, dim=1)[0], torch.max(depth_values, dim=1)[0]
