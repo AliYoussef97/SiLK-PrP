@@ -110,6 +110,13 @@ def warp_points_NeRF(points: torch.Tensor,
     B, H, W = depth.shape
     
     points_temp = points.floor().to(torch.int32)
+
+    flat_points = points_temp[:, 0] * W + points_temp[:, 1]
+
+    # Create 5x5 (flattned) patch around each feature point
+    offset = torch.arange(-2, 3, device=device)
+    offset = torch.stack((offset.repeat_interleave(5), 
+                            offset.repeat(5)), dim=0).T
     
     # mask points that are close to the border
     mask = (points_temp[:, 0] <= 2) | (points_temp[:, 1] <= 2) | (points_temp[:, 0] >= H-2) | (points_temp[:, 1] >= W-2)
@@ -122,22 +129,15 @@ def warp_points_NeRF(points: torch.Tensor,
         depth_batch[i, mask] = dp[points_temp[mask, 0], points_temp[mask, 1]]
 
         dp = dp.flatten()
-
-        flat_points = points_temp[:, 0] * W + points_temp[:, 1]
-        
-        # Create 5x5 (flattned) patch around each feature point
-        offset = torch.arange(-2, 3, device=device)
-        offset = torch.stack((offset.repeat_interleave(5), 
-                              offset.repeat(5)), dim=0).T
-
+    
         depth_values = torch.empty((points_temp[~mask].shape[0], len(offset)), device=device)
 
         for j, off in enumerate(offset):
-            patch = flat_points[~mask] + off[0] * W + off[1]
+            patch = flat_points[~mask] + (off[0] * W + off[1])
             depth_values[:, j] = dp[patch]
         
         min_depth, max_depth = torch.min(depth_values, dim=1)[0], torch.max(depth_values, dim=1)[0]
-
+        
         # If there is a large difference between the min and max depth values of the patch, take the min depth value,
         # otherwise take the depth value at the feature point location
         depth_batch[i, ~mask] = torch.where((max_depth - min_depth) >= 0.03, min_depth, dp[flat_points[~mask]].flatten())
