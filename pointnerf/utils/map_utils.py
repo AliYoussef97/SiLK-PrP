@@ -128,7 +128,7 @@ def warp_points_NeRF(points: torch.Tensor,
         # Create 5x5 (flattned) patch around each feature point
         offset = torch.arange(-2, 3, device=device)
         offset = torch.stack((offset.repeat_interleave(5), 
-                              offset.repeat(5)), dim=1).T
+                              offset.repeat(5)), dim=0).T
 
         depth_values = torch.empty((points_temp[~mask].shape[0], len(offset)), device=device)
 
