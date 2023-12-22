@@ -140,28 +140,6 @@ class NeRF(Dataset):
         image = Grayscale(num_output_channels=1)(image)
         return image/255.0
     
-    def downsample_data(self, data):
-        
-        H, W = self.config["image_size"]
-        H_ds, W_ds = self.config["downsample_size"]
-        
-        i,j,h,w = torchvision.transforms.RandomCrop.get_params(data["raw"]["image"], output_size=(H_ds,W_ds))
-
-        data["raw"]["image"] = data["raw"]["image"][i:i+h, j:j+w]
-        data["warp"]["image"] = data["warp"]["image"][i:i+h, j:j+w]
-
-        data["raw"]["input_depth"] = data["raw"]["input_depth"][i:i+h, j:j+w]
-        data["warp"]["warped_depth"] = data["warp"]["warped_depth"][i:i+h, j:j+w]
-
-        scale_H = torch.tensor([H_ds/H], dtype=torch.float32, device=self.device).squeeze()
-        scale_W = torch.tensor([W_ds/W], dtype=torch.float32, device=self.device).squeeze()
-        data["camera_intrinsic_matrix"][0,0] *= scale_H
-        data["camera_intrinsic_matrix"][1,1] *= scale_H # NeRF data focal length computed using Height FOV only.
-        data["camera_intrinsic_matrix"][0,2] *= scale_W
-        data["camera_intrinsic_matrix"][1,2] *= scale_H
-
-        return data
-    
     def relative_pose(self, input_transformation: np.ndarray, warped_transformation: np.ndarray) -> dict:
         '''
         Calculate relative pose between two camera transformations.
@@ -228,9 +206,6 @@ class NeRF(Dataset):
                 "gt_relative_pose":gt_relative_pose,
                 "camera_intrinsic_matrix":self.camera_intrinsic_matrix}
         
-        if self.config["downsample"]:
-            data = self.downsample_data(data)
-
         return data
     
     def batch_collator(self, batch: list) -> dict:

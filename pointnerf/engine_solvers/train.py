@@ -117,7 +117,7 @@ class Trainer:
                                                     batch["gt_relative_pose"],
                                                     train=True)
 
-        loss = desc_loss + kpts_loss + (rot_loss + transl_loss)
+        loss = desc_loss + kpts_loss + self.config["training"]["lambda_pose"]*(rot_loss + transl_loss)
 
         self.optimizer.zero_grad()
 
@@ -126,11 +126,13 @@ class Trainer:
         self.optimizer.step()
 
         self.running_loss.append(loss.item())
+        f1 = (2 * precision * recall) / (precision + recall)
 
         self.writer.add_scalar("Descriptor loss", desc_loss, self.iteration)
         self.writer.add_scalar("Keypoints loss", kpts_loss, self.iteration)
         self.writer.add_scalar("Precision", precision, self.iteration)
         self.writer.add_scalar("Recall", recall, self.iteration)
+        self.writer.add_scalar("F1 score", f1, self.iteration)
         self.writer.add_scalar("Rotation loss", torch.rad2deg(rot_loss), self.iteration)
         self.writer.add_scalar("Translation loss", torch.rad2deg(transl_loss), self.iteration)
         self.writer.add_scalar("Total loss", loss, self.iteration)

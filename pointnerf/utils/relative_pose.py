@@ -90,7 +90,7 @@ def relative_pose_error(P_est: torch.Tensor,
         err: (N) torch.Tensor
     """
     if P_est is None:
-        return torch.abs(torch.arccos(torch.tensor(-1.))), torch.abs(torch.arccos(torch.tensor(-1.)))
+        return torch.tensor(0.0, device=P_GT.device), torch.tensor(0.0, device=P_GT.device)
     
     assert len(P_est.shape) == 3 and len(P_GT.shape) == 3, "Estimated and GT poses must have shape (B, 3, 4)"
 

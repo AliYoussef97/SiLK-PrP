@@ -93,7 +93,7 @@ class Loss(torch.nn.Module):
     def flatten(x):
         B,C,_,_ = x.shape
         x = x.reshape(B, C, -1)
-        x = x.permute(0, 2, 1).contiguous()
+        x = x.permute(0, 2, 1)
         return x
     
     @staticmethod
@@ -126,7 +126,7 @@ class Loss(torch.nn.Module):
 
         logits_0, logits_1 = self.flatten(logits_0), self.flatten(logits_1)
         logits_0, logits_1 = logits_0.squeeze(-1), logits_1.squeeze(-1)
-        
+
         desc_loss, keypoint_loss, precision, recall, correct_mask_0, correct_mask_1 = total_loss(desc_0,
                                                                                                  desc_1,
                                                                                                  corr_0,

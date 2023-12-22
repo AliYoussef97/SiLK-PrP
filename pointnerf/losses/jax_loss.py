@@ -174,8 +174,11 @@ def corr_matching_binary_cross_entropy(
         ~correct_mask_1
     ) * jax.nn.softplus(+logits_1)
 
-    m0 = jnp.logical_or(tp_mask_0, gt_mask_0)
-    m1 = jnp.logical_or(tp_mask_1, gt_mask_1)
+    m0 = tp_mask_0
+    m1 = tp_mask_1
+
+    m0 = jnp.logical_or(m0, gt_mask_0)
+    m1 = jnp.logical_or(m1, gt_mask_1)
 
     n0 = m0.sum()
     n1 = m1.sum()

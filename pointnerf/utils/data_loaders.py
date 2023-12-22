@@ -19,7 +19,7 @@ def get_loader(config, task, device="cpu", validate_training=False):
                                         shuffle=True,
                                         pin_memory=True,
                                         persistent_workers=True,
-                                        num_workers=2),
+                                        num_workers=4),
                         "validation":None}
         if validate_training: 
 
@@ -31,6 +31,6 @@ def get_loader(config, task, device="cpu", validate_training=False):
                                                 shuffle=False,
                                                 pin_memory=True,
                                                 persistent_workers=True,
-                                                num_workers=2)
+                                                num_workers=4)
     
     return data_loader

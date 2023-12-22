@@ -228,3 +228,41 @@ def get_correspondences(data: dict,
     corr_0, corr_1 = keep_mutual_correspondences_only(corr_forward, corr_backward)
 
     return corr_0, corr_1
+
+
+def center_crop(img_0,img_1,cor_0,cor_1,img_size,f_size,bias=9):
+
+    # Image
+    H,W = img_size
+    H_new,W_new = H//2,W//2
+
+    crop_top = int(round((H - H_new) / 2.0))
+    crop_left = int(round((W - W_new) / 2.0))
+
+    # From 480x640 to 240x320
+    img_0 = img_0[:,:,crop_top:crop_top+H_new,crop_left:crop_left+W_new]
+    img_1 = img_1[:,:,crop_top:crop_top+H_new,crop_left:crop_left+W_new]
+
+    # Feature
+    H_feat,W_feat = f_size
+    H_feat_new,W_feat_new = H_feat//2,W_feat//2
+
+    crop_top_feat = int(round((H_feat - H_feat_new) / 2.0)) 
+    crop_left_feat = int(round((W_feat - W_feat_new) / 2.0))
+
+    mask = torch.zeros(H_feat,W_feat,device=cor_0.device,dtype=torch.bool)
+
+    mask[crop_top_feat+int(bias):crop_top_feat+H_feat_new,
+         crop_left_feat+int(bias):crop_left_feat+W_feat_new] = True
+    mask = mask.flatten()
+    
+    cor_0 = cor_0[:,mask]
+    cor_1 = cor_1[:,mask]
+    
+    indicies = torch.arange(cor_0.shape[1],device=cor_0.device)
+    cor_0 = torch.where(cor_0 != -1, indicies, cor_0)
+    cor_1 = torch.where(cor_1 != -1, indicies, cor_1)
+
+    cor_0,cor_1 = keep_mutual_correspondences_only(cor_0,cor_1)
+
+    return img_0, img_1, cor_0, cor_1
