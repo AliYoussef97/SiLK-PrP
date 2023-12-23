@@ -83,7 +83,8 @@ def normalise_raw_descriptors(raw_descriptors: torch.Tensor,
     """
     return nn.functional.normalize(raw_descriptors, dim=1, p=2) * scale
 
-def dense_normalised_descriptors(normalised_descriptors: torch.Tensor) -> torch.Tensor:
+def dense_normalised_descriptors(raw_descriptors: torch.Tensor,
+                                 scale_factor: float = 1.41) -> torch.Tensor:
     """
     Convert normalised descriptors to dense descriptors.
     Inputs:
@@ -91,13 +92,15 @@ def dense_normalised_descriptors(normalised_descriptors: torch.Tensor) -> torch.
     Outputs:
         dense_descriptors: (B, H*W, C) torch.Tensor
     """
-    B, C, = normalised_descriptors.shape[:2]
-    dense_descriptors = normalised_descriptors.reshape(B, C, -1)
-    dense_descriptors = dense_descriptors.permute(0, 2, 1).contiguous()
+    B, C, = raw_descriptors.shape[:2]
+    dense_descriptors = normalise_raw_descriptors(raw_descriptors, scale_factor)
+    dense_descriptors = dense_descriptors.reshape(B, C, -1)
+    dense_descriptors = dense_descriptors.permute(0, 2, 1)
     return dense_descriptors
     
-def sparse_normalised_descriptors(normalised_descriptors: torch.Tensor, 
-                                  points_with_scores: torch.Tensor) -> torch.Tensor:
+def sparse_normalised_descriptors(raw_descriptors: torch.Tensor, 
+                                  points_with_scores: torch.Tensor,
+                                  scale_factor: float = 1.41) -> torch.Tensor:
     """
     Convert normalised descriptors to sparse descriptors (Only for batch size of 1)
     Inputs:
@@ -106,10 +109,12 @@ def sparse_normalised_descriptors(normalised_descriptors: torch.Tensor,
     Outputs:
         sparse_descriptors: (N, C) torch.Tensor
     """
-    assert normalised_descriptors.shape[0] == 1, "normalised_descriptors must have batch size of 1"
-    if len(normalised_descriptors.shape) == 4: normalised_descriptors = normalised_descriptors.squeeze(0)
+    assert raw_descriptors.shape[0] == 1, "normalised_descriptors must have batch size of 1"
+    if len(raw_descriptors.shape) == 4: raw_descriptors = raw_descriptors.squeeze(0)
     if len(points_with_scores.shape) == 3: points_with_scores = points_with_scores.squeeze(0)
 
-    points = points_with_scores[:, :2].floor().long() # (1, N, 2)
-    normalised_descriptors = normalised_descriptors[:, points[:, 0], points[:, 1]].T # (1, N, C)
+    points = points_with_scores[:, :2].floor().long() # (N, 2)
+    sparse_raw_descriptors = raw_descriptors[:, points[:, 0], points[:, 1]].T # (N, C)
+    normalised_descriptors = normalise_raw_descriptors(sparse_raw_descriptors, scale_factor) # (N, C)
+
     return normalised_descriptors
