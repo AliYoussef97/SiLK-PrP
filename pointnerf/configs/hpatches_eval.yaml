@@ -1,11 +1,12 @@
 data:
-    gt_pairs: 'ScanNet/scannet_test_pairs_with_gt.txt'
-    images_path:  'ScanNet'
-    resize: [640,480]
-    epi_thrsehold: 0.0005
-    resize_float: false
+    name: 'HPatches'
+    class_name: 'HPatches'
+    batch_size: 1
+    alteration: '' # choose when running engine on Hpatches evaluation, v for viewpoint, i for illumination, all for both
+    resize_side: "short"
+    resize: 480
+    dist_thresh: 3.0
 model:
-    model:
     script: 'PointNeRF'
     class_name: 'Pointnerf'
     backbone:
@@ -21,11 +22,12 @@ model:
       normalization: 'BatchNorm2d'
       activation: 'ReLU'
     scale_factor: 1.41
+    bias: 9.0
 matcher:
-  method: "double_softmax"
+  method: "mnn"
   top_k: 10000
-  dist_thresh: 0.6
+  dist_thresh: null
   max_ratio: null
   temperature: 0.1
   cross_check: True
-pretrained: 'pointnerf_pose_v1/pointnerf_pose_v1_5000.pth'
+pretrained: 'pointnerf_v1/pointnerf_v1_100000.pth'

@@ -80,7 +80,8 @@ class Loss(torch.nn.Module):
         block_size: Optional[int] = None,
         jax_device: str = "cuda:1",
         temperature: float = 0.1,
-        shape: tuple = (462, 622)
+        shape: tuple = (462, 622),
+        pose_loss: bool = False,
     ) -> None:
         super().__init__()
 
@@ -88,6 +89,8 @@ class Loss(torch.nn.Module):
         self._jax_device = jax_device
         self._temperature_sqrt_inv = 1.0 / math.sqrt(temperature)
         self._shape = shape
+        self._pose_loss = pose_loss
+        
     
     @staticmethod
     def flatten(x):
@@ -135,6 +138,8 @@ class Loss(torch.nn.Module):
                                                                                                  logits_1,
                                                                                                  block_size=self._block_size,
                                                                                                  jax_device=self._jax_device)
+        if not self._pose_loss:
+            return desc_loss, keypoint_loss, precision, recall, None, None
 
         # If no mutual correct matches, return None
         if (correct_mask_0.sum() <= 25) or (correct_mask_1.sum() <= 25):
@@ -153,6 +158,6 @@ class Loss(torch.nn.Module):
             m_points_0, m_points_1 = prob_map_to_points_scores(prob_map_0), prob_map_to_points_scores(prob_map_1)
             
             # Keep points only
-            m_points_0, m_points_1 = m_points_0[:,:,:2].floor().to(torch.int32), m_points_1[:,:,:2].floor().to(torch.int32)
+            m_points_0, m_points_1 = m_points_0[:,:,:2], m_points_1[:,:,:2]
 
-            return desc_loss, keypoint_loss, precision, recall, m_points_0.to(torch.float32), m_points_1.to(torch.float32)
+            return desc_loss, keypoint_loss, precision, recall, m_points_0, m_points_1

@@ -1,0 +1,37 @@
+data:
+    name: 'ScanNet'
+    class_name: 'Scannet'
+    gt_pairs: 'ScanNet/scannet_test_pairs_with_gt.txt'
+    images_path:  'ScanNet'
+    resize: [480, 640]
+    n_thres: 0.0
+    epi_thrsehold: 0.0005
+    shuffle: false
+    max_length: -1
+    batch_size: 1
+model:
+    script: 'PointNeRF'
+    class_name: 'Pointnerf'
+    backbone:
+      channels: [1, 64, 64, 128, 128]
+      normalization: 'BatchNorm2d'
+      activation: 'ReLU'
+    detector_head:
+      channels: [128, 128, 1]
+      normalization: 'BatchNorm2d'
+      activation: 'ReLU'
+    descriptor_head:
+      channels: [128, 128, 128]
+      normalization: 'BatchNorm2d'
+      activation: 'ReLU'
+    scale_factor: 1.41
+    bias: 9.0
+matcher:
+  method: "mnn"
+  top_k: 20000
+  dist_thresh: null
+  max_ratio: null
+  temperature: 0.1
+  cross_check: True
+  ransac_thresh: 0.5
+pretrained: 'pointnerf_v1/pointnerf_v1_100000.pth'

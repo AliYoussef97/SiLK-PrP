@@ -41,16 +41,16 @@ def probabilities_top_k(prob_map: torch.Tensor,
         top_k_percentage = (One_D - top_k - 1) / One_D # Percentage of top k
 
         k_threshold = prob_map_1D.quantile(top_k_percentage, 
-                                            dim=1, 
-                                            interpolation='midpoint') # Quantile cut-off value at which all values above threshold are top k
+                                           dim=1, 
+                                           interpolation='midpoint') # Quantile cut-off value at which all values above threshold are top k
     
     prob_theshold = torch.minimum(threshold, k_threshold)[:,None][:,None]
 
-    prob_map = torch.where(prob_map > prob_theshold, 
-                           prob_map, 
-                           torch.tensor(0., device=prob_map.device)) # (B, H, W)
+    prob_map_topk = torch.where(prob_map > prob_theshold, 
+                                prob_map, 
+                                torch.tensor(0.0, device=prob_map.device)) # (B, H, W)
     
-    return prob_map
+    return prob_map_topk
     
 def prob_map_to_points_scores(prob_map: torch.Tensor, 
                               threshold: float = 0.) -> torch.Tensor:
@@ -66,11 +66,13 @@ def prob_map_to_points_scores(prob_map: torch.Tensor,
 
     B = prob_map.shape[0]
         
-    points_with_scores = [torch.cat((torch.nonzero(prob_map[i] > threshold, as_tuple=False) + 0.5, 
-                                        prob_map[i][torch.nonzero(prob_map[i] > threshold, as_tuple=True)][:, None]),
-                                        dim=1) for i in range(B)] # [B, N, 3] 
-    points_with_scores = torch.stack(points_with_scores, dim=0) # (B, N, 3) (y, x, score)
-    return points_with_scores
+    points_with_scores = [torch.cat((torch.nonzero(prob_map[i] > threshold, as_tuple=False).float() + 0.5, 
+                                     prob_map[i][torch.nonzero(prob_map[i] > threshold, as_tuple=True)][:, None]),
+                                     dim=1) for i in range(B)] # [B, N, 3] 
+    
+    pts_w_scores = torch.stack(points_with_scores, dim=0) # (B, N, 3) (y, x, score)
+    
+    return pts_w_scores
 
 def normalise_raw_descriptors(raw_descriptors: torch.Tensor, 
                               scale: float = 1.41) -> torch.Tensor:
@@ -81,7 +83,7 @@ def normalise_raw_descriptors(raw_descriptors: torch.Tensor,
     Outputs:
         descriptors: (B, C, H, W) torch.Tensor
     """
-    return nn.functional.normalize(raw_descriptors, dim=1, p=2) * scale
+    return scale * nn.functional.normalize(raw_descriptors, dim=1, p=2)
 
 def dense_normalised_descriptors(raw_descriptors: torch.Tensor,
                                  scale_factor: float = 1.41) -> torch.Tensor:
@@ -93,12 +95,12 @@ def dense_normalised_descriptors(raw_descriptors: torch.Tensor,
         dense_descriptors: (B, H*W, C) torch.Tensor
     """
     B, C, = raw_descriptors.shape[:2]
-    dense_descriptors = normalise_raw_descriptors(raw_descriptors, scale_factor)
-    dense_descriptors = dense_descriptors.reshape(B, C, -1)
-    dense_descriptors = dense_descriptors.permute(0, 2, 1)
-    return dense_descriptors
+    norm_descriptors = normalise_raw_descriptors(raw_descriptors, scale_factor)
+    dense_descriptors = norm_descriptors.reshape(B, C, -1)
     
-def sparse_normalised_descriptors(raw_descriptors: torch.Tensor, 
+    return dense_descriptors.permute(0, 2, 1)
+    
+def sparse_normalised_descriptors(raw_descriptors: torch.Tensor,
                                   points_with_scores: torch.Tensor,
                                   scale_factor: float = 1.41) -> torch.Tensor:
     """

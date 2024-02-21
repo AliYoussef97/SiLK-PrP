@@ -6,8 +6,8 @@ from torch.utils.data import Dataset
 import torchvision
 from torchvision.transforms import Grayscale
 from pointnerf.data.data_utils.photometric_augmentation import Photometric_aug
+from pointnerf.data.data_utils.homographic_augmentation import Homographic_aug
 from pointnerf.settings import DATA_PATH
-from kornia.geometry.epipolar.projection import scale_intrinsics
 
 class NeRF(Dataset):
     def __init__(self, data_config, task = "training", device="cpu") -> None:
@@ -18,6 +18,7 @@ class NeRF(Dataset):
         self.samples = self._init_dataset()
         self.camera_intrinsic_matrix = self.get_camera_intrinsic(self.config["image_size"],self.config["fov"])        
         self.photometric_aug = Photometric_aug(self.config["augmentation"]["photometric"])
+        self.homographic_aug = Homographic_aug(self.config["augmentation"]["homographic"])
 
     def _init_dataset(self) -> dict:
         """
@@ -28,7 +29,7 @@ class NeRF(Dataset):
             files: dict containing the paths to the images, camera transforms and depth maps.
         """
         data_dir = Path(DATA_PATH, "NeRF", "images", self.action)
-        image_paths = sorted(list(data_dir.iterdir()))
+        image_paths = list(data_dir.iterdir())
         if self.config["truncate"]:
             image_paths = image_paths[:int(self.config["truncate"]*len(image_paths))]
         names = [p.stem for p in image_paths]
@@ -113,9 +114,34 @@ class NeRF(Dataset):
         Output:
             random_frame_index: int
         '''
-        lower_bound = (random_frame_number // 1000) * 1000
-        upper_bound = lower_bound + 1000
-        return random.randint(lower_bound, upper_bound-1)
+        lower_bound = 0
+        upper_bound = 1000    
+        
+        if self.config['bound_frame_sampling']:
+            ratio = upper_bound - lower_bound
+
+            if random_frame_number == lower_bound:
+                frames = np.arange(random_frame_number+0.07*ratio,random_frame_number+0.15*ratio,1)
+                return random.choice(frames)
+                
+            elif random_frame_number == upper_bound-1:
+                frames = np.arange(random_frame_number-0.15*ratio,random_frame_number-0.07*ratio,1)
+                return random.choice(frames)
+                
+            elif random_frame_number - 0.15 * ratio < lower_bound:
+                frames = np.arange(random_frame_number+0.07*ratio, random_frame_number+0.15*ratio, 1)
+                return random.choice(frames)
+                
+            elif random_frame_number + 0.15 * ratio > upper_bound-1:
+                frames = np.arange(random_frame_number-0.15*ratio,random_frame_number-0.07*ratio)
+                return random.choice(frames)
+                
+            else:
+                return random.choice(np.concatenate((np.arange(random_frame_number-0.15*ratio,random_frame_number-0.07*ratio,1),
+                                                    np.arange(random_frame_number+0.07*ratio,random_frame_number+0.15*ratio,1)),
+                                                    axis=0))
+        else:
+            return random.randint(lower_bound, upper_bound-1)
 
     def read_image(self, image: str) -> torch.Tensor:
         '''
@@ -127,7 +153,7 @@ class NeRF(Dataset):
         '''
         image = torchvision.io.read_file(image)
         image = torchvision.io.decode_image(image,torchvision.io.ImageReadMode.RGB)
-        return image
+        return image.to(torch.float32)
     
     def RGB_to_Grayscale(self, image: torch.Tensor) -> torch.Tensor:
         '''
@@ -162,29 +188,44 @@ class NeRF(Dataset):
         P_1_2 = torch.cat([R_1_2, T_1_2], dim=-1)
 
         return P_1_2
+    
+    def get_curr_name_number(self, s: str) -> tuple:
+        name = ''.join([i for i in s if not i.isdigit()])
+        number = ''.join([i for i in s if i.isdigit()])
+        return name, number
 
     def __getitem__(self, index: int) -> dict:
 
         input_image = self.samples["image_paths"][index]  
         input_image = self.read_image(input_image)
         input_name = self.samples["names"][index]
+        input_depth = np.load(self.samples["depth_paths"][index])
+        input_depth = torch.as_tensor(input_depth, dtype=torch.float32, device=self.device)
         input_transformation = np.load(self.samples["camera_transform_paths"][index])
         input_transformation = self.axis_transform(input_transformation)
         input_rotation, input_translation = self.get_rotation_translation(input_transformation)
-        input_depth = np.load(self.samples["depth_paths"][index])
-        input_depth = torch.as_tensor(input_depth, dtype=torch.float32, device=self.device)
-
-        random_frame_idx = int(self.generate_random_frame_index(index))
+        
+        curr_name, curr_index = self.get_curr_name_number(input_name)
+        random_idx = int(self.generate_random_frame_index(int(curr_index)))
+        random_frame_idx = self.samples["names"].index(curr_name+str(random_idx))
+        
         warped_image = self.samples["image_paths"][random_frame_idx]
-        warped_image = self.read_image(warped_image)
+        warped_image = self.read_image(warped_image)    
         warped_name = self.samples["names"][random_frame_idx]
-        warped_transformation = np.load(self.samples["camera_transform_paths"][random_frame_idx])
-        warped_transformation = self.axis_transform(warped_transformation)
-        warped_rotation, warped_translation = self.get_rotation_translation(warped_transformation)
         warped_depth = np.load(self.samples["depth_paths"][random_frame_idx])
         warped_depth = torch.as_tensor(warped_depth, dtype=torch.float32, device=self.device)
+        warped_transformation = np.load(self.samples["camera_transform_paths"][random_frame_idx])
+        warped_transformation = self.axis_transform(warped_transformation)
+        warped_camera_intrinsic_matrix = self.camera_intrinsic_matrix
 
-        gt_relative_pose = self.relative_pose(input_transformation, warped_transformation)
+        # Apply homographic augmentation
+        if (self.action == "training") and (self.config["augmentation"]["homographic"]["apply"]):
+            prob_h = np.random.rand()
+            if prob_h < self.config["augmentation"]["homographic"]["p"]:
+                warped_image, warped_depth, warped_transformation, scale = self.homographic_aug(warped_image, warped_depth, warped_transformation)
+                warped_camera_intrinsic_matrix = torch.matmul(warped_camera_intrinsic_matrix, scale)
+
+        warped_rotation, warped_translation = self.get_rotation_translation(warped_transformation)
 
         # Apply photometric augmentation
         if self.action == "training":
@@ -192,6 +233,8 @@ class NeRF(Dataset):
         
         input_image, warped_image = self.RGB_to_Grayscale(input_image), self.RGB_to_Grayscale(warped_image)
         input_image, warped_image = input_image.squeeze(), warped_image.squeeze()
+        
+        gt_relative_pose = self.relative_pose(input_transformation, warped_transformation)
 
         data = {"raw":{'image':input_image,
                        'input_depth':input_depth,
@@ -204,8 +247,9 @@ class NeRF(Dataset):
                 "name":input_name,
                 "warped_name":warped_name,
                 "gt_relative_pose":gt_relative_pose,
-                "camera_intrinsic_matrix":self.camera_intrinsic_matrix}
-        
+                "camera_intrinsic_matrix":self.camera_intrinsic_matrix,
+                "warped_camera_intrinsic_matrix":warped_camera_intrinsic_matrix}
+
         return data
     
     def batch_collator(self, batch: list) -> dict:
@@ -239,17 +283,22 @@ class NeRF(Dataset):
             
         intrinsic_matrix = torch.stack([item['camera_intrinsic_matrix'] for item in batch]) # size=(batch_size,3,3)
 
+        warped_intrinsic_matrix = torch.stack([item['warped_camera_intrinsic_matrix'] for item in batch]) # size=(batch_size,3,3)
+
         gt_relative_poses = torch.stack([item['gt_relative_pose'] for item in batch]) # size=(batch_size,3,4)
             
-        return {"raw":{'image':images,
+        output = {"raw":{'image':images,
                        'input_depth':input_depths,
                        'input_rotation':input_rotations,
                        'input_translation':input_translations},
-                "warp":{'image':warped_images,
+                 "warp":{'image':warped_images,
                         'warped_depth':warped_depths,
                         'warped_rotation':warped_rotations,
                         'warped_translation':warped_translations},
-                "name":input_names,
-                "warped_name":warped_names,
-                "gt_relative_pose": gt_relative_poses,
-                "camera_intrinsic_matrix":intrinsic_matrix}
+                 "name":input_names,
+                 "warped_name":warped_names,
+                 "gt_relative_pose": gt_relative_poses,
+                 "camera_intrinsic_matrix":intrinsic_matrix,
+                 "warped_camera_intrinsic_matrix":warped_intrinsic_matrix}
+        
+        return output

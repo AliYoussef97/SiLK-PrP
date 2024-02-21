@@ -5,7 +5,7 @@ from pointnerf.losses.silk_loss import positions_to_unidirectional_correspondenc
 def remove_pts_outside_shape(points: torch.Tensor,
                              shape: torch.Size,
                              device='cpu',
-                             return_mask=False) -> torch.Tensor or (torch.Tensor, torch.Tensor):
+                             return_mask=False) -> torch.Tensor:
     """
     Removes keypoints that are outside the shape of the image.
     - Input:
@@ -29,10 +29,10 @@ def compute_keypoint_map(points: torch.Tensor,
                          device='cpu'):
     """
     Computes a keypoint map from a set of keypoints.
-    input:
+    Input:
         points: (N,2)
         shape: torch tensor (H,W)
-    output:
+    Output:
         kmap: (H,W)
     """
     H, W = shape
@@ -49,7 +49,16 @@ def create_meshgrid(
         dtype: Optional[torch.dtype] = None,
         normalized: bool = True,
     ) -> torch.Tensor:
-        """Generate a coordinate grid for an image."""
+        """Generate a coordinate grid for an image.
+        Input:
+            - height: int
+            - width: int
+            - device: torch.device
+            - dtype: torch.dtype
+            - normalized: bool
+        Output:
+            - base_grid: (1,H,W,2) tensor
+        """
         if normalized:
             min_x = -1.0
             max_x = +1.0
@@ -85,6 +94,7 @@ def create_meshgrid(
 def warp_points_NeRF(points: torch.Tensor,
                      depth: torch.Tensor,
                      cam_intrinsic_matrix: torch.Tensor,
+                     warped_cam_intrinsic_matrix: torch.Tensor,
                      input_rotation: torch.Tensor,
                      input_translation: torch.Tensor, 
                      warp_rotation: torch.Tensor,
@@ -96,6 +106,7 @@ def warp_points_NeRF(points: torch.Tensor,
         - points: (N, 2) tensor
         - depth: (B, H, W) tensor
         - cam_intrinsic_matrix: (B, 3, 3) tensor
+        - warped_cam_intrinsic_matrix: (B, 3, 3) tensor
         - input_rotation: (B, 3, 3) tensor
         - input_translation: (B, 3, 1) tensor
         - warp_rotation: (B, 3, 3) tensor
@@ -152,7 +163,7 @@ def warp_points_NeRF(points: torch.Tensor,
     warped_points *= depth_values
     warped_points = input_rotation @ warped_points + input_translation    
     warped_points = torch.linalg.inv(warp_rotation) @ warped_points - (torch.linalg.inv(warp_rotation) @ warp_translation)
-    warped_points = cam_intrinsic_matrix @ warped_points
+    warped_points = warped_cam_intrinsic_matrix @ warped_points
 
     warped_points = warped_points.transpose(2, 1)
     warped_points = warped_points[:,:, :2] / warped_points[:,:, 2:]
@@ -161,14 +172,17 @@ def warp_points_NeRF(points: torch.Tensor,
     return warped_points
 
 def get_correspondences(data: dict,
-                        shape: list,
+                        feature_shape: list,
                         bias: float = 9.,
                         device: str = "cuda:0") -> torch.Tensor:
     """
     Get correspondences between images.
     Inputs:
         data: dict
-        shape: list
+        feature_shape: list
+        center_crop: bool
+        crop_size: list
+        feature_crop: list
         device: str
     Outputs:
         corr_0: (B,N)
@@ -182,16 +196,17 @@ def get_correspondences(data: dict,
     warped_translation = data["warp"]["warped_translation"]
     warped_depth = data["warp"]["warped_depth"]
 
-    K0 = K1 = data["camera_intrinsic_matrix"]
-
-    H_d, W_d = shape
+    K0 = data["camera_intrinsic_matrix"]
+    K1 = data["warped_camera_intrinsic_matrix"]
+    
+    H_d, W_d = feature_shape
 
     B = data["raw"]["input_depth"].shape[0]
 
     positions = create_meshgrid(
                 H_d,
                 W_d,
-                device = device,
+                device=device,
                 normalized=False,
                 dtype=None,
             )
@@ -203,6 +218,7 @@ def get_correspondences(data: dict,
     positions_forward = warp_points_NeRF(points=positions.squeeze(0),
                                          depth=input_depth,
                                          cam_intrinsic_matrix=K0,
+                                         warped_cam_intrinsic_matrix=K1,
                                          input_rotation=input_rotation,
                                          input_translation=input_translation,
                                          warp_rotation=warped_rotation,
@@ -210,10 +226,11 @@ def get_correspondences(data: dict,
                                          device=device)
     positions_forward -= bias
 
-    
+
     positions_backward = warp_points_NeRF(points=positions.squeeze(0),
                                           depth=warped_depth,
                                           cam_intrinsic_matrix=K1,
+                                          warped_cam_intrinsic_matrix=K0,
                                           input_rotation=warped_rotation,
                                           input_translation=warped_translation,
                                           warp_rotation=input_rotation,
@@ -228,41 +245,3 @@ def get_correspondences(data: dict,
     corr_0, corr_1 = keep_mutual_correspondences_only(corr_forward, corr_backward)
 
     return corr_0, corr_1
-
-
-def center_crop(img_0,img_1,cor_0,cor_1,img_size,f_size,bias=9):
-
-    # Image
-    H,W = img_size
-    H_new,W_new = H//2,W//2
-
-    crop_top = int(round((H - H_new) / 2.0))
-    crop_left = int(round((W - W_new) / 2.0))
-
-    # From 480x640 to 240x320
-    img_0 = img_0[:,:,crop_top:crop_top+H_new,crop_left:crop_left+W_new]
-    img_1 = img_1[:,:,crop_top:crop_top+H_new,crop_left:crop_left+W_new]
-
-    # Feature
-    H_feat,W_feat = f_size
-    H_feat_new,W_feat_new = H_feat//2,W_feat//2
-
-    crop_top_feat = int(round((H_feat - H_feat_new) / 2.0)) 
-    crop_left_feat = int(round((W_feat - W_feat_new) / 2.0))
-
-    mask = torch.zeros(H_feat,W_feat,device=cor_0.device,dtype=torch.bool)
-
-    mask[crop_top_feat+int(bias):crop_top_feat+H_feat_new,
-         crop_left_feat+int(bias):crop_left_feat+W_feat_new] = True
-    mask = mask.flatten()
-    
-    cor_0 = cor_0[:,mask]
-    cor_1 = cor_1[:,mask]
-    
-    indicies = torch.arange(cor_0.shape[1],device=cor_0.device)
-    cor_0 = torch.where(cor_0 != -1, indicies, cor_0)
-    cor_1 = torch.where(cor_1 != -1, indicies, cor_1)
-
-    cor_0,cor_1 = keep_mutual_correspondences_only(cor_0,cor_1)
-
-    return img_0, img_1, cor_0, cor_1

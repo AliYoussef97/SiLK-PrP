@@ -5,7 +5,16 @@ data:
     fov: 44
     truncate: False
     batch_size: 1
+    bound_frame_sampling: True
     augmentation:
+      homographic:
+        apply: False  
+        p: 0.7
+        scale:
+          min: 0.7
+          max: 1.3
+        rotation:
+          angle: 90
       photometric:
         p: 0.95
         Parameters:
@@ -46,12 +55,13 @@ model:
 training:
   learning_rate: 0.0001
   block_size: 3732
-  jax_device: 'cuda:1'
+  jax_device: 'cuda:0'
   temperature: 0.1
-  bias: 9.
-  feature_size: [462, 622]
+  bias: 9.0
+  feature_size: [462, 622] # 2*9convolutions
   num_iters: 100000
   lambda_pose: 1.5
+  pose_loss: False
 pretrained: ''
 ckpt_name: 'pointnerf_v1'
 save_or_validation_interval: 5000

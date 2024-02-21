@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Literal
 from dataclasses import dataclass 
 from pointnerf.settings import CKPT_PATH
-from pointnerf.utils.get_model import get_model
+from pointnerf.utils.get_model import get_model, load_checkpoint
 from pointnerf.utils.data_loaders import get_loader
 from pointnerf.engine_solvers.train import Trainer
+from pointnerf.evaluations.pose_evaluation import estimate_pose_errors
+from evaluations.hpatches_evaluation import estimate_hpatches_metrics
 
 
 @dataclass
@@ -20,6 +22,26 @@ class options:
     """
     validate_training: bool = False
 
+@dataclass
+class pose_options:
+    """Training options.
+
+    Args:
+        validate_training: configuation path
+    """
+    shuffle: bool = False
+    max_length: int = -1
+
+
+@dataclass
+class hpatches_options:
+    """Training options.
+
+    Args:
+        validate_training: configuation path
+    """
+    alteration: Literal["i", "v", "all"] = "v"
+    
 
 @tyro.conf.configure(tyro.conf.FlagConversionOff)
 class main():
@@ -30,8 +52,10 @@ class main():
     """
     def __init__(self,
                  config_path: str,
-                 task: Literal["train"],
-                 training:options) -> None:
+                 task: Literal["train", "pose_evaluation", "hpatches_evaluation"],
+                 training:options,
+                 pose:pose_options,
+                 hpatches:hpatches_options) -> None:
 
         self.config = yaml.load(stream=open(config_path, 'r'), Loader=yaml.FullLoader)
 
@@ -43,38 +67,69 @@ class main():
             
             self.dataloader = get_loader(self.config, 
                                          task, 
-                                         device="cpu", 
-                                         validate_training=training.validate_training)
+                                         device = "cpu", 
+                                         validate_training = training.validate_training)
 
             if self.config["pretrained"]:
-                
-                model_state_dict =  self.model.state_dict()
-                
-                pretrained_dict = torch.load(Path(CKPT_PATH,self.config["pretrained"]), map_location=self.device)
-                pretrained_state = pretrained_dict["model_state_dict"]
-                
-                for k,v in pretrained_state.items():
-                    if k in model_state_dict.keys():
-                        model_state_dict[k] = v
-                
-                self.model.load_state_dict(model_state_dict)
-                print(f'\033[92m✅ Loaded pretrained model \033[0m')
+                                
+                pretrained_dict = torch.load(Path(CKPT_PATH, self.config["pretrained"]), map_location=self.device)
 
-                self.iteration = pretrained_dict["iteration"]
+                self.model = load_checkpoint(self.model, pretrained_dict, eval=False)
+
             
             if self.config["continue_training"]:
-                iteration = self.iteration
+                self.iteration = pretrained_dict["iteration"]
+                self.opt = pretrained_dict["optimizer_state_dict"]
             else:
-                iteration = 0
+                self.iteration = 0
+                self.opt = None
 
-        Trainer(config=self.config,
-                model=self.model,
-                train_loader=self.dataloader["train"],
-                validation_loader=self.dataloader["validation"],
-                iteration=iteration,
-                device=self.device)
-        
+            Trainer(config=self.config,
+                    model=self.model,
+                    train_loader=self.dataloader["train"],
+                    validation_loader=self.dataloader["validation"],
+                    iteration=self.iteration,
+                    optimizer_state_dict=self.opt,
+                    device=self.device)
+            
+        if task == "pose_evaluation" or task == "hpatches_evaluation":
 
+            self.model = get_model(self.config["model"], device=self.device)
+
+            pretrained_dict = torch.load(Path(CKPT_PATH, self.config["pretrained"]), map_location=self.device)
+
+            self.model = load_checkpoint(self.model, pretrained_dict, eval=True)
+
+            if task == "pose_evaluation":
+                if pose.shuffle:
+                    self.config["data"]["shuffle"] = True
+            
+                if pose.max_length > -1:
+                    self.config["data"]["max_length"] = pose.max_length
+                
+                self.dataloader = get_loader(self.config,
+                                             task,
+                                             device = self.device,
+                                             validate_training = False)
+            
+                estimate_pose_errors(self.config, 
+                                     self.model, 
+                                     self.dataloader, 
+                                     self.device)
+                
+            if task == "hpatches_evaluation":
+                
+                self.config["data"]["alteration"] = hpatches.alteration
+                
+                self.dataloader = get_loader(self.config,
+                                             task,
+                                             device = self.device,
+                                             validate_training = False)
+            
+                estimate_hpatches_metrics(self.config, 
+                                          self.model, 
+                                          self.dataloader, 
+                                          self.device)
 
 if __name__ == '__main__':
     tyro.cli(main)

@@ -4,20 +4,6 @@ from pointnerf.model.backbone.model_utils import *
 
 # Parts of this script is taken from SiLK - Simple Learned Keypoints [https://github.com/facebookresearch/silk]
 
-def ratio_test_sim(desc_0: torch.Tensor,
-                   desc_1: torch.Tensor) -> torch.Tensor:
-    """
-    Compute the ratio test similarity between two sets of descriptors.
-    Inputs:
-        desc_0: (N0, D) torch.Tensor
-        desc_1: (N1, D) torch.Tensor
-    Returns:
-        match_prob_dist: (N0,N1) torch.Tensor
-    """
-    desc_0 = torch.nn.functional.normalize(desc_0, p=2, dim=1)
-    desc_1 = torch.nn.functional.normalize(desc_1, p=2, dim=1)
-    match_prob_dist = torch.matmul(desc_0, desc_1.T)
-    return 1.0 - match_prob_dist
     
 def double_softmax_sim(desc_0: torch.Tensor,
                        desc_1: torch.Tensor,
@@ -101,11 +87,13 @@ def match(desc_0: torch.Tensor,
     if matching_method == "double_softmax":
         distance = double_softmax_sim(desc_0, desc_1, temperature)
     
-    elif matching_method == "ratio_test":
-        distance = ratio_test_sim(desc_0, desc_1)
+    elif matching_method == "ratio_test":    
+        desc_0 = torch.nn.functional.normalize(desc_0, dim=1, p=2)
+        desc_1 = torch.nn.functional.normalize(desc_1, dim=1, p=2)
+        distance = 1 - torch.matmul(desc_0, desc_1.T)
     
     elif matching_method == "mnn":
-        distance = 1.0 - torch.matmul(desc_0, desc_1.T)
+        distance = 1 - torch.matmul(desc_0, desc_1.T)
     
     else:
         raise NotImplementedError(f"Matching method {matching_method} not implemented.")
@@ -114,43 +102,67 @@ def match(desc_0: torch.Tensor,
 
     return matches, distance[matches[:, 0], matches[:, 1]]
 
-def matcher(desc_0,
-            desc_1,
-            logits_0,
-            logits_1,
+
+def extract_matched_points(kpts: torch.Tensor,
+                           matches: torch.Tensor,
+                           bias: float) -> torch.Tensor:
+    """
+    Extract the keypoints from the matches.
+    Inputs:
+        kpts: (N, 2) torch.Tensor
+        matches: (M) torch.Tensor
+    Outputs:
+        m_kpts: (M, 2) torch.Tensor
+    """
+    if len(kpts.shape) == 3:
+        kpts = kpts.squeeze()
+    kpts[:,:2] = kpts[:,:2] + bias
+    m_kpts = kpts[matches]
+    matched_kpts = m_kpts[:, :2]
+    matched_kpts = matched_kpts[:, [1, 0]]
+    return matched_kpts
+
+
+def matcher(desc_0: torch.Tensor,
+            desc_1: torch.Tensor,
+            logits_0: torch.Tensor,
+            logits_1: torch.Tensor,
             matching_method: Literal["double_softmax", "ratio_test", "mnn"] = "double_softmax",
             top_k: int = 10000,
             dist_thresh: float = None,
             max_ratio: float = None,
             temperature: float = 0.1,
+            scale_factor: float = 1.41,
+            bias: float = 9.0,
             cross_check: bool = True):
     """
     Wrapper function for the matching methods.
     Inputs:
-        matching_method: Literal["double_softmax","ratio_test"]
+        matching_method: Literal["double_softmax", "ratio_test" , "mnn"]
         dist_thresh: float
         cross_check: bool
     Outputs:
-        matches: (N, 2) torch.Tensor
-        confidence: (N, 1) torch.Tensor
+        dict: {"kpts_0": (N, 3) torch.Tensor,
+                "kpts_1": (N, 3) torch.Tensor,
+                "m_kpts_0": (M, 2) torch.Tensor,
+                "m_kpts_1": (M, 2) torch.Tensor,
+                "confidence": (M) torch.Tensor}
     """
-    SCALE = 1.41
-    BIAS = 9.
-
+    
     prob_0, prob_1 = logits_to_probabilities(logits_0), logits_to_probabilities(logits_1)
 
     prob_0_top_k, prob_1_top_k = probabilities_top_k(prob_0, top_k), probabilities_top_k(prob_1, top_k)
 
     kpts_0, kpts_1 = prob_map_to_points_scores(prob_0_top_k), prob_map_to_points_scores(prob_1_top_k)
-
-    sparse_desc_0, sparse_desc_1 = sparse_normalised_descriptors(desc_0, kpts_0, SCALE), sparse_normalised_descriptors(desc_1, kpts_1, SCALE)
-
+    
+    sparse_desc_0, sparse_desc_1 = sparse_normalised_descriptors(desc_0, kpts_0, scale_factor), sparse_normalised_descriptors(desc_1, kpts_1, scale_factor)
+    
     matches, confidence = match(sparse_desc_0, sparse_desc_1, matching_method, dist_thresh, max_ratio, temperature, cross_check)
 
-    kpts_0, kpts_1 = kpts_0.squeeze(), kpts_1.squeeze()
-
-    kpts_0, kpts_1 = kpts_0[:, :2].floor().long() + BIAS, kpts_1[:, :2].floor().long() + BIAS
+    m_kpts0, m_kpts1 = extract_matched_points(kpts_0, matches[:, 0], bias), extract_matched_points(kpts_1, matches[:, 1], bias)
     
-    m_kpts0, m_kpts1 = kpts_0[matches[:, 0]], kpts_1[matches[:, 1]]
-
-    return kpts_0.detach().cpu().numpy(), kpts_1.detach().cpu().numpy(), m_kpts0.detach().cpu().numpy(), m_kpts1.detach().cpu().numpy(), confidence.detach().cpu().numpy()
+    return {"kpts_0": kpts_0[:, [1, 0, 2]].squeeze().detach().cpu().numpy(),
+            "kpts_1": kpts_1[:, [1, 0, 2]].squeeze().detach().cpu().numpy(),
+            "m_kpts_0": m_kpts0.detach().cpu().numpy(),
+            "m_kpts_1": m_kpts1.detach().cpu().numpy(),
+            "confidence": confidence.detach().cpu().numpy()}

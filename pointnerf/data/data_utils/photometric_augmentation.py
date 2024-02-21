@@ -9,8 +9,7 @@ class Photometric_aug():
             self.augmentation.transforms.append(getattr(A,k)(**v))
     
     def __call__(self, img: torch.Tensor) -> torch.Tensor:
-         img = img.permute(1, 2, 0)
-         img = img.cpu().numpy()
-         img = self.augmentation(image=img)["image"]
-         return torch.from_numpy(img).permute(2, 0, 1)
-
+        img = img.permute(1, 2, 0)
+        img = img.cpu().numpy().astype("uint8")
+        img = self.augmentation(image=img)["image"]
+        return torch.from_numpy(img).permute(2, 0, 1)
