@@ -3,8 +3,8 @@ from torch.utils.data import DataLoader
 
 def get_loader(config, task, device="cpu", validate_training=False):
     
-    dataset = config["data"]["name"] # Name of dataset script. e.g. Synthetic_data.py
-    class_name = config["data"]["class_name"] # Name of class in dataset script. e.g. SyntheticShapes class
+    dataset = config["data"]["name"]
+    class_name = config["data"]["class_name"]
     batch_size = config["data"]["batch_size"]
 
     data_script = importlib.import_module(f"pointnerf.data.{dataset}")
