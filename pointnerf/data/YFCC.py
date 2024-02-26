@@ -4,8 +4,8 @@ import cv2
 import random
 from pathlib import Path
 from torch.utils.data import Dataset
-from pointnerf.settings import DATA_PATH
-from pointnerf.evaluations.eval_utils.pose_utils import rotate_intrinsics, rotate_pose_inplane
+from silkprp.settings import DATA_PATH
+from silkprp.evaluations.eval_utils.pose_utils import rotate_intrinsics, rotate_pose_inplane
 
 class YFCC(Dataset):
     def __init__(self, data_config, device="cpu") -> None:
@@ -112,7 +112,7 @@ class YFCC(Dataset):
         Output:
             image: image as tensor [0, 1] (float32)
         """
-        return torch.from_numpy(image).to(torch.float32)[None, None] / 255.
+        return torch.from_numpy(image.copy()).to(torch.float32)[None, None] / 255.
     
     def __getitem__(self, index: int) -> dict:
 
@@ -126,11 +126,11 @@ class YFCC(Dataset):
             rot_0, rot_1 = 0, 0
 
 
-        image0 = self.read_image(Path(DATA_PATH, self.config["images_path"], name0), rot_0)
-        image1 = self.read_image(Path(DATA_PATH, self.config["images_path"], name1), rot_1)
+        image0 = self.read_image(Path(DATA_PATH, self.config["images_path"], name0))
+        image1 = self.read_image(Path(DATA_PATH, self.config["images_path"], name1))
         
-        image0, S0 = self.preprocess(image0)
-        image1, S1 = self.preprocess(image1)
+        image0, S0 = self.preprocess(image0, rot_0)
+        image1, S1 = self.preprocess(image1, rot_1)
 
         inp0 = self.to_tensor(image0)
         inp1 = self.to_tensor(image1)

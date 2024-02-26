@@ -37,8 +37,8 @@ data:
           GaussNoise:
             p: 0.5
 model:
-    script: 'PointNeRF'
-    class_name: 'Pointnerf'
+    script: 'SiLK_PrP'
+    class_name: 'SiLKPrP'
     backbone:
       channels: [1, 64, 64, 128, 128]
       normalization: 'BatchNorm2d'
@@ -58,11 +58,11 @@ training:
   jax_device: 'cuda:0'
   temperature: 0.1
   bias: 9.0
-  feature_size: [462, 622] # 2*9convolutions
+  feature_size: [42, 62] # 2*9convolutions
   num_iters: 100000
   lambda_pose: 1.5
   pose_loss: False
 pretrained: ''
-ckpt_name: 'pointnerf_v1'
+ckpt_name: 'silkprp_v1'
 save_or_validation_interval: 5000
 continue_training: False

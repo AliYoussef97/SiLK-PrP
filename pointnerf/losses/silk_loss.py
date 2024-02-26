@@ -11,9 +11,9 @@ import math
 from typing import Optional
 import torch
 import jax
-import pointnerf.losses.jax_loss as jax_loss
-from pointnerf.losses.jax_functions import jax2torch
-from pointnerf.model.backbone.model_utils import logits_to_probabilities, probabilities_top_k, prob_map_to_points_scores
+import silkprp.losses.jax_loss as jax_loss
+from silkprp.losses.jax_functions import jax2torch
+from silkprp.model.backbone.model_utils import logits_to_probabilities, prob_map_to_points_scores
 
 positions_to_unidirectional_correspondence = jax2torch(
     jax.jit(

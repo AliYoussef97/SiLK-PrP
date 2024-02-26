@@ -9,7 +9,7 @@
 
 import jax
 from jax import numpy as jnp
-from pointnerf.losses.jax_functions import delayed_vjp
+from silkprp.losses.jax_functions import delayed_vjp
 
 def positions_to_unidirectional_correspondence(
     positions,

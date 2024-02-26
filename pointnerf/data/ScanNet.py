@@ -4,7 +4,7 @@ import cv2
 import random
 from pathlib import Path
 from torch.utils.data import Dataset
-from pointnerf.settings import DATA_PATH
+from silkprp.settings import DATA_PATH
 
 class Scannet(Dataset):
     def __init__(self, data_config, device="cpu") -> None:

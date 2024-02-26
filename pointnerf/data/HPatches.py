@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 from torch.utils.data import Dataset
 from pathlib import Path
-from pointnerf.settings import DATA_PATH
+from silkprp.settings import DATA_PATH
 
 class HPatches(Dataset):
     def __init__(self, data_config, device="cpu") -> None:

@@ -1,6 +1,6 @@
 import torch
 from typing import Optional
-from pointnerf.losses.silk_loss import positions_to_unidirectional_correspondence, keep_mutual_correspondences_only
+from silkprp.losses.silk_loss import positions_to_unidirectional_correspondence, keep_mutual_correspondences_only
 
 def remove_pts_outside_shape(points: torch.Tensor,
                              shape: torch.Size,

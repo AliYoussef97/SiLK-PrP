@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
-from pointnerf.utils.match import matcher
-from pointnerf.evaluations.eval_utils.hpatches_utils import compute_repeatability, estimate_homography, hpatches_auc, mean_matching_acc, hpatches_metrics
+from silkprp.utils.match import matcher
+from silkprp.evaluations.eval_utils.hpatches_utils import compute_repeatability, estimate_homography, mean_matching_acc, hpatches_metrics
 
 
 @torch.no_grad()

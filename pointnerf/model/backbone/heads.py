@@ -1,5 +1,5 @@
 import torch.nn as nn
-from pointnerf.model.backbone.vgg_backbone import vgg_block
+from silkprp.model.backbone.vgg_backbone import vgg_block
 
 
 class Detector_Head(nn.Module):

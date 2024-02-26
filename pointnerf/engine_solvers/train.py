@@ -1,14 +1,13 @@
 from tqdm import tqdm
 import torch
-import torchvision
 import numpy as np
 from pathlib import Path
-from pointnerf.utils.train_utils import move_to_device
-from pointnerf.settings import CKPT_PATH
-from pointnerf.losses.silk_loss import Loss
-from pointnerf.model.backbone.model_utils import normalise_raw_descriptors
-from pointnerf.utils.map_utils import get_correspondences
-from pointnerf.utils.relative_pose import pose_estimation, relative_pose_error
+from silkprp.utils.train_utils import move_to_device
+from silkprp.settings import CKPT_PATH
+from silkprp.losses.silk_loss import Loss
+from silkprp.model.backbone.model_utils import normalise_raw_descriptors
+from silkprp.utils.map_utils import get_correspondences
+from silkprp.utils.relative_pose import pose_estimation, relative_pose_error
 from torch.utils.tensorboard import SummaryWriter
 
 class Trainer:

@@ -4,8 +4,12 @@ import time
 import sys
 from requests.exceptions import RequestException, ConnectionError
 
-url =   "http://images.cocodataset.org/annotations/annotations_trainval2017.zip"#"http://images.cocodataset.org/zips/train2017.zip"  #"http://images.cocodataset.org/zips/val2014.zip" #"http://images.cocodataset.org/zips/test2014.zip"
-filename = "annotatoin_train2017.zip" #"val2014.zip" #"test2014.zip"
+url =   "http://images.cocodataset.org/zips/train2017.zip"  #"http://images.cocodataset.org/zips/val2017.zip" #"http://images.cocodataset.org/zips/test2017.zip"
+filename = "annotatoin_train2017.zip" #"val2017.zip" #"test2017.zip"
+
+# Annotation file
+# url = "http://images.cocodataset.org/annotations/annotations_trainval2017.zip"
+# filename = "annotations_trainval2017.zip"
 
 total_retries = 5
 retry_delay = 5  # seconds

@@ -1,8 +1,8 @@
 import torch.nn as nn
-from pointnerf.model.backbone.vgg_backbone import VGG_Backbone
-from pointnerf.model.backbone.heads import Detector_Head, Descriptor_Head
+from silkprp.model.backbone.vgg_backbone import VGG_Backbone
+from silkprp.model.backbone.heads import Detector_Head, Descriptor_Head
 
-class Pointnerf(nn.Module):
+class SiLKPrP(nn.Module):
     def __init__(self, config: dict) -> None:
         super().__init__()
 

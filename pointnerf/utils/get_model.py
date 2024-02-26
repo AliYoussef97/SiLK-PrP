@@ -14,7 +14,7 @@ def get_model(config: dict,
     script = config["script"]
     class_name = config["class_name"]
 
-    model_script = importlib.import_module(f"pointnerf.model.{script}")
+    model_script = importlib.import_module(f"silkprp.model.{script}")
     model = getattr(model_script, class_name)(config)
         
     return model.to(device)

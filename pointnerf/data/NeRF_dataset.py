@@ -5,9 +5,9 @@ from pathlib import Path
 from torch.utils.data import Dataset
 import torchvision
 from torchvision.transforms import Grayscale
-from pointnerf.data.data_utils.photometric_augmentation import Photometric_aug
-from pointnerf.data.data_utils.homographic_augmentation import Homographic_aug
-from pointnerf.settings import DATA_PATH
+from silkprp.data.data_utils.photometric_augmentation import Photometric_aug
+from silkprp.data.data_utils.homographic_augmentation import Homographic_aug
+from silkprp.settings import DATA_PATH
 
 class NeRF(Dataset):
     def __init__(self, data_config, task = "training", device="cpu") -> None:

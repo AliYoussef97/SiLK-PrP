@@ -5,13 +5,13 @@ data:
     images_path:  'YFCC/raw_data/yfcc100m'
     resize: 1600
     n_thres: 0.0
-    epi_thrsehold: 0.0005
+    epi_thrsehold: 0.0001
     shuffle: false
     max_length: -1
     batch_size: 1
 model:
-    script: 'PointNeRF'
-    class_name: 'Pointnerf'
+    script: 'SiLK_PrP'
+    class_name: 'SiLKPrP'
     backbone:
       channels: [1, 64, 64, 128, 128]
       normalization: 'BatchNorm2d'
@@ -34,4 +34,4 @@ matcher:
   temperature: 0.1
   cross_check: True
   ransac_thresh: 0.5
-pretrained: 'pointnerf_v1/pointnerf_v1_100000.pth'
+pretrained: 'silkprp_v1/silkprp_v1_100000.pth'

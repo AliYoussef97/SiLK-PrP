@@ -1,6 +1,5 @@
 # Parts of this code is from SuperGlue[https://github.com/magicleap/SuperGluePretrainedNetwork]
 
-import torch
 import numpy as np
 import cv2
 from tabulate import tabulate

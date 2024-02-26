@@ -7,7 +7,7 @@ def get_loader(config, task, device="cpu", validate_training=False):
     class_name = config["data"]["class_name"]
     batch_size = config["data"]["batch_size"]
 
-    data_script = importlib.import_module(f"pointnerf.data.{dataset}")
+    data_script = importlib.import_module(f"silkprp.data.{dataset}")
 
     if task == "train":
         

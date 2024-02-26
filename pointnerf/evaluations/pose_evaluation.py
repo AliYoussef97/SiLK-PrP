@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from tqdm import tqdm
-from pointnerf.utils.match import matcher
-from pointnerf.evaluations.eval_utils.pose_utils import compute_epipolar_error, estimate_pose, compute_pose_error, pose_estimation_metrics
+from silkprp.utils.match import matcher
+from silkprp.evaluations.eval_utils.pose_utils import compute_epipolar_error, estimate_pose, compute_pose_error, pose_estimation_metrics
 
 
 @torch.no_grad()

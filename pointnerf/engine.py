@@ -5,11 +5,11 @@ import torch
 from pathlib import Path
 from typing import Literal
 from dataclasses import dataclass 
-from pointnerf.settings import CKPT_PATH
-from pointnerf.utils.get_model import get_model, load_checkpoint
-from pointnerf.utils.data_loaders import get_loader
-from pointnerf.engine_solvers.train import Trainer
-from pointnerf.evaluations.pose_evaluation import estimate_pose_errors
+from silkprp.settings import CKPT_PATH
+from silkprp.utils.get_model import get_model, load_checkpoint
+from silkprp.utils.data_loaders import get_loader
+from silkprp.engine_solvers.train import Trainer
+from silkprp.evaluations.pose_evaluation import estimate_pose_errors
 from evaluations.hpatches_evaluation import estimate_hpatches_metrics
 
 

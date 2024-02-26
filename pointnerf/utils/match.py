@@ -1,6 +1,6 @@
 import torch
 from typing import Literal
-from pointnerf.model.backbone.model_utils import *
+from silkprp.model.backbone.model_utils import *
 
 # Parts of this script is taken from SiLK - Simple Learned Keypoints [https://github.com/facebookresearch/silk]
 

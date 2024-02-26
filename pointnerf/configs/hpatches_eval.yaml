@@ -7,8 +7,8 @@ data:
     resize: 480
     dist_thresh: 3.0
 model:
-    script: 'PointNeRF'
-    class_name: 'Pointnerf'
+    script: 'SiLK_PrP'
+    class_name: 'SiLKPrP'
     backbone:
       channels: [1, 64, 64, 128, 128]
       normalization: 'BatchNorm2d'
@@ -30,4 +30,4 @@ matcher:
   max_ratio: null
   temperature: 0.1
   cross_check: True
-pretrained: 'pointnerf_v1/pointnerf_v1_100000.pth'
+pretrained: 'silkprp_v1/silkprp_v1_100000.pth'
