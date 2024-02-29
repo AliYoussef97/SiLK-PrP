@@ -58,7 +58,7 @@ training:
   jax_device: 'cuda:0'
   temperature: 0.1
   bias: 9.0
-  feature_size: [42, 62] # 2*9convolutions
+  feature_size: [462, 622] # 2*9convolutions
   num_iters: 100000
   lambda_pose: 1.5
   pose_loss: False
