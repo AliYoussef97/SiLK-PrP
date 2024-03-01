@@ -16,3 +16,4 @@ torch==2.1.1+cu121
 torchvision==0.16.1+cu121
 tqdm==4.65.0
 tyro==0.5.7
+natsort==8.4.0

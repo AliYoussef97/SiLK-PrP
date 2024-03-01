@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import random
 from pathlib import Path
+from natsort import natsorted
 from torch.utils.data import Dataset
 import torchvision
 from torchvision.transforms import Grayscale
@@ -29,10 +30,10 @@ class NeRF(Dataset):
             files: dict containing the paths to the images, camera transforms and depth maps.
         """
         data_dir = Path(DATA_PATH, "NeRF", "images", self.action)
-        image_paths = list(data_dir.iterdir())
+        image_paths = natsorted(list(data_dir.iterdir()))
         if self.config["truncate"]:
             image_paths = image_paths[:int(self.config["truncate"]*len(image_paths))]
-        names = [p.stem for p in image_paths]
+        names = natsorted([p.stem for p in image_paths])
         image_paths = [str(p) for p in image_paths]
         files = {"image_paths":image_paths, "names":names}
 

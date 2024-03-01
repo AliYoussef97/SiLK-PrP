@@ -24,7 +24,7 @@ class options:
 
 @dataclass
 class pose_options:
-    """Training options.
+    """Pose evaluation options.
 
     Args:
         validate_training: configuation path
@@ -35,7 +35,7 @@ class pose_options:
 
 @dataclass
 class hpatches_options:
-    """Training options.
+    """HPatches evaluation options.
 
     Args:
         validate_training: configuation path
