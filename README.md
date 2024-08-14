@@ -22,7 +22,7 @@ This project is part of the codebase for [NeRF-Supervised Feature Point Detectio
     2. CKPT_PATH: The path where the model's checkpoints are saved.
     3. EXPER_PATH: The path of the directory where experiments are written.
 
-The Dataset can be downloaded through the following [link](https://onedrive.live.com/?authkey=%21AOl8awdUggCQMYM&id=365F2D732BD86585%21108&cid=365F2D732BD86585).
+The Dataset can be downloaded through the following [link](https://drive.google.com/file/d/1lwee3hKPL-4LMmexB2iwHShEKaKQZq18/view?usp=sharing).
 
 The folder containing the datasets should be structured as follows:
 ```
