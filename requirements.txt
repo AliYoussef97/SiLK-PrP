@@ -4,7 +4,7 @@ jax==0.4.16
 kornia==0.7.1
 matplotlib==3.8.2
 numpy==1.24.1
-opencv_python==4.6.0.66
+opencv_python==4.8.1.78
 opencv_python_headless==4.8.0.74
 poselib==2.0.0
 pypng==0.20220715.0
